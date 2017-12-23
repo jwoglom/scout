@@ -487,7 +487,9 @@ scout.current = {
 		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
 		document.querySelector("#current_noise").innerHTML = noise;
 
-		document.querySelector("title").innerHTML = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
+		var title = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
+		var tobj = document.querySelector("title");
+		if (tobj.innerHTML != title) tobj.innerHTML = title;
 		scout.current.updateFavicon(cur);
 	},
 
