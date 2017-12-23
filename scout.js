@@ -248,7 +248,10 @@ scout.chart = {
 };
 
 scout.inRange = {
+	initOnce: false,
 	init: function() {
+		if (scout.inRange.initOnce) return;
+		scout.inRange.initOnce = true;
 		scout.inRange.addRange("2017-12-01", "2017-12-20");
 		scout.inRange.addDay("2017-12-01");
 		scout.inRange.addDay("2017-12-05");
