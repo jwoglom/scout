@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
-
 <head>
+	<meta charset="UTF-8" />
 	<title>Line Chart</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
 	<script src="http://www.chartjs.org/dist/2.7.1/Chart.js"></script>
@@ -18,37 +18,40 @@
 </head>
 
 <body>
-	<div style="width:75%;">
-		<canvas id="canvas"></canvas>
+	<div style="width:100%">
+		<canvas id="sgvCanvas"></canvas>
+		<canvas id="bgCanvas"></canvas>
 	</div>
-	<br>
-	<br>
-	<button id="randomizeData">Randomize Data</button>
-	<button id="addDataset">Add Dataset</button>
-	<button id="removeDataset">Remove Dataset</button>
-	<button id="addData">Add Data</button>
-	<button id="removeData">Remove Data</button>
 	<script>
-
+		var SGV_TARGET_MAX = 200;
+		var SGV_TARGET_MIN = 80;
 		var timeFormat = 'MM/DD/YYYY HH:mm';
 
-
-		function newDate(days) {
-			return moment().add(days, 'd').toDate();
-		}
-
-		function newDateString(days) {
-			return moment().add(days, 'd').format(timeFormat);
-		}
-
-		function newTimestamp(days) {
-			return moment().add(days, 'd').unix();
-		}
-
 		function colorForSgv(sgv) {
-			if (sgv < 80) return 'rgb(255, 0, 0)';
-			if (sgv > 200) return 'rgb(255, 0, 0)';
+			if (sgv < SGV_TARGET_MIN) return 'rgb(255, 0, 0)';
+			if (sgv > SGV_TARGET_MAX) return 'rgb(255, 0, 0)';
 			return 'rgb(0, 255, 0)';
+		}
+
+		function updateInRange(sgv) {
+			if (sgv < SGV_TARGET_MIN) window.sgvInRange[1]++;
+			else if (sgv > SGV_TARGET_MAX) window.sgvInRange[3]++;
+			else window.sgvInRange[2]++;
+		}
+
+		function directionToArrow(dir) {
+			return {
+				NONE: '⇼', 
+				DoubleUp: '⇈',
+				SingleUp: '↑',
+				FortyFiveUp: '↗',
+				Flat: '→',
+				FortyFiveDown: '↘',
+				SingleDown: '↓',
+				DoubleDown: '⇊',
+				'NOT COMPUTABLE': '-',
+				'RATE OUT OF RANGE': '⇕'
+			}[dir];
 		}
 
 		var color = Chart.helpers.color;
@@ -59,15 +62,16 @@
 				],
 				datasets: [{
 					label: "Glucose",
-					backgroundColor: color(window.chartColors.blue).alpha(0.5).rgbString(),
-					borderColor: window.chartColors.blue,
+					backgroundColor: 'rgba(0, 0, 0, 0.5)',
+					borderColor: 'rgb(0, 0, 0)',
 					fill: false,
 					data: []
 				}]
 			},
 			options: {
-                title:{
-                    text: "Chart.js Time Scale"
+				responsive: true,
+                title: {
+                    text: "Glucose"
                 },
 				scales: {
 					xAxes: [{
@@ -75,16 +79,16 @@
 						time: {
 							format: timeFormat,
 							// round: 'day'
-							tooltipFormat: 'll HH:mm'
+							tooltipFormat: 'll hh:mm a'
 						},
 						scaleLabel: {
-							display: true,
+							display: false,
 							labelString: 'Date'
 						}
 					}, ],
 					yAxes: [{
 						scaleLabel: {
-							display: true,
+							display: false,
 							labelString: 'mg/dL'
 						},
 						ticks: {
@@ -94,6 +98,9 @@
 
 						}
 					}],
+				},
+				legend: {
+					display: false
 				},
 				annotation: {
 					events: [],
@@ -105,7 +112,7 @@
 						xScaleID: "x-axis-0",
 						yScaleID: "y-axis-0",
 						yMin: 0,
-						yMax: 80,
+						yMax: SGV_TARGET_MIN,
 						xMin: moment("1969-12-31T23:59:59-0500"),
 						xMax: moment("2969-12-31T23:59:59-0500"),
 						backgroundColor: "rgba(255, 0, 0, 0.1)"
@@ -115,19 +122,19 @@
 						type: "box",
 						xScaleID: "x-axis-0",
 						yScaleID: "y-axis-0",
-						yMin: 200,
+						yMin: SGV_TARGET_MAX,
 						yMax: 400,
 						xMin: moment("1969-12-31T23:59:59-0500"),
 						xMax: moment("2969-12-31T23:59:59-0500"),
-						backgroundColor: "rgba(255, 0, 0, 0.1)"
+						backgroundColor: "rgba(255, 127, 0, 0.1)"
 					}, {
 						drawTime: "beforeDatasetsDraw",
 						id: "goodRange",
 						type: "box",
 						xScaleID: "x-axis-0",
 						yScaleID: "y-axis-0",
-						yMin: 80,
-						yMax: 200,
+						yMin: SGV_TARGET_MIN,
+						yMax: SGV_TARGET_MAX,
 						xMin: moment("1969-12-31T23:59:59-0500"),
 						xMax: moment("2969-12-31T23:59:59-0500"),
 						backgroundColor: "rgba(0, 255, 0, 0.1)",
@@ -139,103 +146,137 @@
 			},
 		};
 
+		var bgConf = {
+			type: 'doughnut',
+		    data: {
+				labels: ["Unknown", "Low", "In Range", "High"],
+				datasets: [{
+					label: "mg/dL",
+					backgroundColor: [
+						"rgb(169, 169, 169)",
+						"rgb(128, 0, 0)",
+						"rgb(0, 255, 0)",
+						"rgb(255, 127, 0)"
+					],
+				  	data: []
+				}]
+		    },
+		    options: {
+		    	responsive: true,
+				title: {
+					display: false,
+					text: 'Current Blood Glucose'
+				},
+				legend: {
+					display: false
+				},
+		      	annotation: {
+					events: [],
+					annotations: [{
+						drawTime: "beforeDatasetsDraw",
+						id: "bgCurrent",
+						type: "text",
+						yMin: 0,
+						yMax: SGV_TARGET_MIN,
+						xMin: moment("1969-12-31T23:59:59-0500"),
+						xMax: moment("2969-12-31T23:59:59-0500"),
+						backgroundColor: "rgba(255, 0, 0, 0.1)"
+					}, {
+						drawTime: "beforeDatasetsDraw",
+						id: "highRange",
+						type: "box",
+						xScaleID: "x-axis-0",
+						yScaleID: "y-axis-0",
+						yMin: SGV_TARGET_MAX,
+						yMax: 400,
+						xMin: moment("1969-12-31T23:59:59-0500"),
+						xMax: moment("2969-12-31T23:59:59-0500"),
+						backgroundColor: "rgba(255, 127, 0, 0.1)"
+					}, {
+						drawTime: "beforeDatasetsDraw",
+						id: "goodRange",
+						type: "box",
+						xScaleID: "x-axis-0",
+						yScaleID: "y-axis-0",
+						yMin: SGV_TARGET_MIN,
+						yMax: SGV_TARGET_MAX,
+						xMin: moment("1969-12-31T23:59:59-0500"),
+						xMax: moment("2969-12-31T23:59:59-0500"),
+						backgroundColor: "rgba(0, 255, 0, 0.1)",
+						borderColor: "rgba(0, 255, 0, 1)",
+						borderWidth: 2
+					}]
+				}
+		    }
+		};
+
+		Chart.pluginService.register({
+		  beforeDraw: function(chart) {
+		    var width = chart.chart.width,
+		        height = chart.chart.height,
+		        ctx = chart.chart.ctx;
+
+		    ctx.restore();
+		    if (chart.config.type != 'doughnut') return;
+		    var fontSize = (height / 114).toFixed(2);
+		    ctx.font = fontSize + "em sans-serif";
+		    ctx.textBaseline = "middle";
+
+		    if ('middleText' in chart.config.data) {
+			    var text = chart.config.data['middleText'],
+			        textX = Math.round((width - ctx.measureText(text).width) / 2),
+			        textY = height / 2;
+
+			    ctx.fillText(text, textX, textY);
+			    ctx.save();
+			}
+		  }
+		});
+
 		window.onload = function() {
-			var ctx = document.getElementById("canvas").getContext("2d");
-			window.sgvChart = new Chart(ctx, sgvConf);
+			var sgvCtx = document.getElementById("sgvCanvas").getContext("2d");
+			window.sgvChart = new Chart(sgvCtx, sgvConf);
 
+			var bgCtx = document.getElementById("bgCanvas").getContext("2d");
+			window.bgChart = new Chart(bgCtx, bgConf);
 
+			window.displayedData = [];
+			window.sgvInRange = [0, 0, 0, 0];
 			superagent.get("test-data.json", function(resp) {
 				var data = JSON.parse(resp.text);
 				console.log(data);
 				var ldata = [];
 				var dataset = sgvChart.config.data.datasets[0];
-				dataset.data = [];
-				dataset.pointBackgroundColor = [];
-				for (var i in data) {
+				if(!dataset.data) dataset.data = [];
+				if(!dataset.pointBackgroundColor) dataset.pointBackgroundColor = [];
+				for (var i=0; i<data.length; i++) {
 					var obj = data[i];
-					console.log(obj);
-					dataset.data.push({
-						x: moment(obj['dateString']),
-						y: obj['sgv']
-					});
+					if (!(obj in displayedData)) {
+						//console.log(obj);
+						dataset.data.push({
+							x: moment(obj['dateString']),
+							y: obj['sgv']
+						});
+						updateInRange(obj['sgv']);
+					}
+					displayedData.push(obj);
 					dataset.pointBackgroundColor.push(colorForSgv(obj['sgv']))
 				}
 				
 				console.log(ldata);
 				window.sgvChart.update();
+
+				var bgSet = bgChart.config.data.datasets[0];
+				bgSet.data = [];
+				for (var i=0; i<sgvInRange.length; i++) {
+					bgSet.data.push(sgvInRange[i]);
+				}
+				bgChart.config.data['middleText'] = displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction']);
+				window.bgChart.update();
+
 			});
 
 		};
-
-		document.getElementById('randomizeData').addEventListener('click', function() {
-			config.data.datasets.forEach(function(dataset) {
-				dataset.data.forEach(function(dataObj, j) {
-					if (typeof dataObj === 'object') {
-						dataObj.y = randomScalingFactor();
-					} else {
-						dataset.data[j] = randomScalingFactor();
-					}
-				});
-			});
-
-			window.myLine.update();
-		});
-
-		var colorNames = Object.keys(window.chartColors);
-		document.getElementById('addDataset').addEventListener('click', function() {
-			var colorName = colorNames[config.data.datasets.length % colorNames.length];
-			var newColor = window.chartColors[colorName]
-			var newDataset = {
-				label: 'Dataset ' + config.data.datasets.length,
-				borderColor: newColor,
-				backgroundColor: color(newColor).alpha(0.5).rgbString(),
-				data: [],
-			};
-
-			for (var index = 0; index < config.data.labels.length; ++index) {
-				newDataset.data.push(randomScalingFactor());
-			}
-
-			config.data.datasets.push(newDataset);
-			window.myLine.update();
-		});
-
-		document.getElementById('addData').addEventListener('click', function() {
-			if (config.data.datasets.length > 0) {
-				config.data.labels.push(newDate(config.data.labels.length));
-
-				for (var index = 0; index < config.data.datasets.length; ++index) {
-					if (typeof config.data.datasets[index].data[0] === "object") {
-						config.data.datasets[index].data.push({
-							x: newDate(config.data.datasets[index].data.length),
-							y: randomScalingFactor(),
-						});
-					} else {
-						config.data.datasets[index].data.push(randomScalingFactor());
-					}
-				}
-
-				window.myLine.update();
-			}
-		});
-
-		document.getElementById('removeDataset').addEventListener('click', function() {
-			config.data.datasets.splice(0, 1);
-			window.myLine.update();
-		});
-
-		document.getElementById('removeData').addEventListener('click', function() {
-			config.data.labels.splice(-1, 1); // remove the label first
-
-			config.data.datasets.forEach(function(dataset, datasetIndex) {
-				dataset.data.pop();
-			});
-
-			window.myLine.update();
-		});
-
-
-
 
 	</script>
 </body>
