@@ -8,6 +8,7 @@
 	<script src="http://www.chartjs.org/samples/latest/utils.js"></script>
 	<script src="chartjs-plugin-annotation.min.js"></script>
 	<script src="http://smalljs.org/ajax/superagent/superagent.js"></script>
+	<script src="scout.js"></script>
 	<style>
     canvas {
         -moz-user-select: none;
@@ -18,8 +19,10 @@
 </head>
 
 <body>
-	<div style="width:100%">
-		<canvas id="sgvCanvas"></canvas>
+	<div style="width:500%">
+		<canvas id="sgvCanvas" width=5000 height=200></canvas>
+	</div>
+	<div style="width: 50%">
 		<canvas id="bgCanvas"></canvas>
 	</div>
 	<script>
@@ -78,6 +81,13 @@
 						type: "time",
 						time: {
 							format: timeFormat,
+							unit: 'hour',
+							unitStepSize: 1,
+							displayFormats: {
+								'minute': 'hh:mm a',
+								'hour': 'll hh:mm a',
+								'day': 'll'
+							},
 							// round: 'day'
 							tooltipFormat: 'll hh:mm a'
 						},
