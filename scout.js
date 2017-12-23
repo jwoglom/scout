@@ -1,5 +1,6 @@
 var scout = {
 	config: {
+		fetchUrl: 'test-data.json',
 		sgv: {
 			target_min: 80,
 			target_max: 200
@@ -16,9 +17,9 @@ scout.util = {
 	},
 
 	updateInRange: function(sgv) {
-		if (sgv < scout.config.sgv.target_min) window.sgvInRange[1]++;
-		else if (sgv > scout.config.sgv.target_max) window.sgvInRange[3]++;
-		else window.sgvInRange[2]++;
+		if (sgv < scout.config.sgv.target_min) window.scout.sgv.inRange[1]++;
+		else if (sgv > scout.config.sgv.target_max) window.scout.sgv.inRange[3]++;
+		else window.scout.sgv.inRange[2]++;
 	},
 
 	pctA1c: function(avg_sgv) {
@@ -54,6 +55,14 @@ scout.util = {
 			'NOT COMPUTABLE': '-',
 			'RATE OUT OF RANGE': unescape('%u21D5')
 		}[dir];
+	},
+
+	minsAgo: function(date) {
+		var now = new Date();
+		var mins = parseInt((now - date)/60000);
+		if (mins < 1) return "just now";
+		if (mins == 1) return "1 min ago";
+		return mins+" mins ago";
 	}
 };
 
@@ -227,10 +236,23 @@ scout.chart = {
 
 scout.sgv = {
 	data: null,
+	currentEntry: null,
 	inRange: null,
 	bgSum: 0,
 	bgCount: 0
 };
+
+scout.current = {
+	loadSgv: function() {
+		var cur = scout.sgv.currentEntry;
+		if (!cur) return;
+
+		document.querySelector("#current_sgv").innerHTML = cur['sgv'];
+		document.querySelector("#current_direction").innerHTML = scout.util.directionToArrow(cur['direction']);
+		document.querySelector("#current_delta").innerHTML = cur['delta'] > 0 ? '+'+parseInt(cur['delta']) : parseInt(cur['delta']);
+		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
+	}
+}
 
 Chart.pluginService.register({
   beforeDraw: function(chart) {
@@ -262,12 +284,14 @@ window.onload = function() {
 	var bgCtx = document.getElementById("bgCanvas").getContext("2d");
 	scout.chart.bg = new Chart(bgCtx, scout.chartConf.bg);
 
-	window.displayedData = [];
-	window.sgvInRange = [0, 0, 0, 0];
-	window.bgSum = 0;
-	window.bgCount = 0;
-	superagent.get("test-data.json", function(resp) {
+	scout.sgv.data = [];
+	scout.sgv.inRange = [0, 0, 0, 0];
+	scout.sgv.bgSum = 0;
+	scout.sgv.bgCount = 0;
+	superagent.get(scout.config.fetchUrl, function(resp) {
 		var data = JSON.parse(resp.text);
+		scout.sgv.currentEntry = data[0];
+		scout.current.loadSgv();
 		console.log(data);
 		var ldata = [];
 		var dataset = scout.chart.sgv.config.data.datasets[0];
@@ -275,16 +299,16 @@ window.onload = function() {
 		if(!dataset.pointBackgroundColor) dataset.pointBackgroundColor = [];
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
-			if (!(obj in displayedData)) {
+			if (!(obj in scout.sgv.data)) {
 				dataset.data.push({
 					x: moment(obj['dateString']),
 					y: obj['sgv']
 				});
 				scout.util.updateInRange(obj['sgv']);
-				window.bgSum += obj['sgv'];
-				window.bgCount++;
+				window.scout.sgv.bgSum += obj['sgv'];
+				window.scout.sgv.bgCount++;
 			}
-			displayedData.push(obj);
+			scout.sgv.data.push(obj);
 			dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
 		}
 		
@@ -293,10 +317,10 @@ window.onload = function() {
 
 		var bgSet = scout.chart.bg.config.data.datasets[0];
 		bgSet.data = [];
-		for (var i=0; i<sgvInRange.length; i++) {
-			bgSet.data.push(sgvInRange[i]);
+		for (var i=0; i<scout.sgv.inRange.length; i++) {
+			bgSet.data.push(scout.sgv.inRange[i]);
 		}
-		scout.chart.bg.config.data['middleText'] = scout.util.round(window.bgSum/window.bgCount, 0);
+		scout.chart.bg.config.data['middleText'] = scout.util.round(window.scout.sgv.bgSum/window.scout.sgv.bgCount, 0);
 		//displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction'])
 		scout.chart.bg.update();
 
