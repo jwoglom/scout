@@ -16,7 +16,7 @@
 	<script src="http://smalljs.org/ajax/superagent/superagent.js"></script>
 	<script type='text/javascript' src='scout.js'></script>
 	<script type='text/javascript' src='secret.js'>
-		// scout.config.fetchUrl = "https://your-nightscout-host/api/v1/entries/sgv.json";
+		// scout.config.urls.apiRoot = "https://your-nightscout-host/api/v1/";
 	</script>
 
 </head>
@@ -33,19 +33,31 @@
 		<main class="mdl-layout__content">
 			<div class="mdl-layout__tab-panel is-active" id="overview">
 				<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-					<div class="mdl-card mdl-cell mdl-cell--8-col">
+					<div class="mdl-card mdl-cell mdl-cell--4-col">
 						<h2 class="current-header">
 							<span id="current_sgv"></span>
-							<span id="current_direction"></span>
 						</h2>
 						<h3 class="current-subhead">
 							<span id="current_noise"></span>
 							<span id="current_minsago"></span>
+						</h3>
+					</div>
+					<div class="mdl-card mdl-cell mdl-cell--4-col">
+						<h2 class="current-header">
+							<span id="current_direction"></span>
+						</h2>
+						<h3 class="current-subhead">
 							<span id="current_delta"></span>
 						</h3>
 					</div>
 					<div class="mdl-card mdl-cell mdl-cell--4-col">
-						
+						<h4 class="current-subhead">
+							Battery: <span id="device_battery"></span><br />
+							<span id="device_name"></span>
+						</h4>
+						<h4 class="current-subhead">
+							Sensor: <span id="cgm_sensor_age"></span>
+						</h4>
 					</div>
 				</section>
 				<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
@@ -328,12 +340,16 @@
  	font-size: 128px;
  	line-height: 128px;
  	margin: 10px 20px;
+
+ 	text-align: center;
  }
 
  h3.current-subhead {
  	font-size: 32px;
  	line-height: 32px;
  	margin: 0 20px;
+
+ 	text-align: center;
  }
 
 
@@ -354,6 +370,14 @@
 
  #in_range .in_range_section .mdl-card__supporting-text {
  	margin: 0 20px;
+ }
+
+ #device_battery:after {
+ 	content: "%";
+ }
+
+ #device_name {
+ 	font-size: 14px;
  }
 
 </style>

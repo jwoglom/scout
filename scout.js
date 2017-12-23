@@ -1,6 +1,12 @@
 var scout = {
 	config: {
-		fetchUrl: 'test-data.json',
+		urls: {
+			apiRoot: '',
+			sgvEntries: 'entries/sgv.json',
+			deviceStatus: 'devicestatus.json',
+			status: 'status.json',
+			treatments: 'treatments.json'
+		},
 		sgv: {
 			target_min: 80,
 			target_max: 200
@@ -58,11 +64,9 @@ scout.util = {
 	},
 
 	minsAgo: function(date) {
-		var now = new Date();
-		var mins = parseInt((now - date)/60000);
-		if (mins < 1) return "just now";
-		if (mins == 1) return "1 min ago";
-		return mins+" mins ago";
+		var mom = moment(date).fromNow();
+		if (mom == "a few seconds ago") return "just now";
+		return mom;
 	},
 
 	noise: function(n) {
@@ -390,6 +394,7 @@ scout.sgv = {
 			return function() {
 				this.parentElement.querySelector(".is-active").classList.remove('is-active');
 				this.classList.add('is-active');
+				scout.sgv.currentLength = cb;
 				cb(scout.sgv.primaryCallback);
 			}
 		}
@@ -445,7 +450,7 @@ scout.current = {
 		if (!cur) return;
 
 		var direction = scout.util.directionToArrow(cur['direction']);
-		var delta = cur['delta'] > 0 ? '+'+Math.round(cur['delta']) : Math.round(cur['delta']);
+		var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
 		var noise = scout.util.noise(cur['noise']);
 
 		document.querySelector("#current_sgv").innerHTML = cur['sgv'];
@@ -460,7 +465,7 @@ scout.current = {
 };
 
 scout.fetch = function(args, cb) {
-	superagent.get(scout.config.fetchUrl+"?"+args, function(resp) {
+	superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+args, function(resp) {
 		var data = JSON.parse(resp.text);
 		cb(data);
 
@@ -494,6 +499,42 @@ scout.fetch.threeday = function(cb) {
 scout.fetch.week = function(cb) {
 	return scout.fetch.gte(moment().subtract({hours: 168}).format(), cb);
 }
+
+scout.device = {
+	fetchStatus: function(cb) {
+		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus, function(resp) {
+			var data = JSON.parse(resp.text);
+			cb(data);
+		});
+	},
+
+	fetchTreatments: function(args, cb) {
+		superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments + "?" + args, function(resp) {
+			var data = JSON.parse(resp.text);
+			cb(data);
+		});
+	},
+
+	fetchSensorStart: function(cb) {
+		scout.device.fetchTreatments("count=1&find[created_at][$gte]=2017&find[eventType]=Sensor+Start", cb);
+	},
+
+
+	update: function() {
+		scout.device.fetchStatus(function(data) {
+			var latest = data[0];
+			console.log("latest", latest);
+			document.querySelector("#device_battery").innerHTML = latest["uploader"]["battery"];
+			document.querySelector("#device_name").innerHTML = latest["device"];
+		});
+
+		scout.device.fetchSensorStart(function(data) {
+			var latest = data[0];
+			console.log("sensorStart", latest);
+			document.querySelector("#cgm_sensor_age").innerHTML = moment(latest["created_at"]).fromNow();
+		});
+	}
+};
 
 Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({
@@ -559,6 +600,12 @@ Chart.pluginService.register({
 
 window.onload = function() {
 	scout.sgv.primaryInit();
-	scout.fetch.halfday(scout.sgv.primaryCallback);
+	scout.sgv.currentLength = scout.fetch.halfday;
+	scout.sgv.currentLength(scout.sgv.primaryCallback);
+	setInterval(function() {
+		console.log("reload", scout.sgv.currentLength);
+		scout.sgv.currentLength(scout.sgv.primaryCallback);
+	}, 30*1000);
+	scout.device.update();
 	
 };
