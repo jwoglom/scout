@@ -63,6 +63,33 @@ scout.util = {
 		}[dir];
 	},
 
+	directionToThickArrow: function(dir) {
+		return {
+			/*
+			NONE: '⇼', 
+			DoubleUp: '▲▲',
+			SingleUp: '▲',
+			FortyFiveUp: '⬈',
+			Flat: '▶',
+			FortyFiveDown: '⬊',
+			SingleDown: '▼',
+			DoubleDown: '▼▼',
+			'NOT COMPUTABLE': '-',
+			'RATE OUT OF RANGE': '⬍'
+			*/
+			NONE: unescape('%u21FC'), 
+			DoubleUp: unescape('%u25B2%u25B2'),
+			SingleUp: unescape('%u25B2'),
+			FortyFiveUp: unescape('%u2B08'),
+			Flat: unescape('%u25B6'),
+			FortyFiveDown: unescape('%u2B0A'),
+			SingleDown: unescape('%u25BC'),
+			DoubleDown: unescape('%u25BC%u25BC'),
+			'NOT COMPUTABLE': '-',
+			'RATE OUT OF RANGE': unescape('%u2B0D')
+		}[dir];
+	},
+
 	minsAgo: function(date) {
 		var mom = moment(date).fromNow();
 		if (mom == "a few seconds ago") return "just now";
@@ -466,7 +493,7 @@ scout.current = {
 
 	updateFavicon: function(cur) {
 		var sgv = parseInt(cur['sgv']);
-		var arrow = scout.util.directionToArrow(cur['direction']);
+		var arrow = scout.util.directionToThickArrow(cur['direction']);
 		var noise = scout.util.noise(cur['noise']);
 		if (noise.length > 1) arrow = noise.substring(0, 1);
 		var canvas = document.getElementById("favicon_canvas");
@@ -479,7 +506,7 @@ scout.current = {
 			textAlign = "center";
 
 			font = "bold 40px Arial";
-			fillText(arrow, 32, 25);
+			fillText(arrow, 32, 30);
 
 			font = "40px Arial";
 			fillText(sgv, 32, 63);
