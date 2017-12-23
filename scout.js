@@ -239,7 +239,21 @@ scout.sgv = {
 	currentEntry: null,
 	inRange: null,
 	bgSum: 0,
-	bgCount: 0
+	bgCount: 0,
+
+	bindJump: function() {
+		function click(cb) {
+			return function() {
+				this.parentElement.querySelector(".is-active").classList.remove('is-active');
+				this.classList.add('is-active');
+				cb();
+			}
+		}
+		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(scout.fetch.halfday));
+		document.querySelector("#sgv-jump-today").addEventListener('click', click(scout.fetch.today));
+		document.querySelector("#sgv-jump-threeday").addEventListener('click', click(scout.fetch.threeday));
+		document.querySelector("#sgv-jump-week").addEventListener('click', click(scout.fetch.week));
+	}
 };
 
 scout.current = {
@@ -249,9 +263,73 @@ scout.current = {
 
 		document.querySelector("#current_sgv").innerHTML = cur['sgv'];
 		document.querySelector("#current_direction").innerHTML = scout.util.directionToArrow(cur['direction']);
-		document.querySelector("#current_delta").innerHTML = cur['delta'] > 0 ? '+'+parseInt(cur['delta']) : parseInt(cur['delta']);
+		document.querySelector("#current_delta").innerHTML = cur['delta'] > 0 ? '+'+Math.round(cur['delta']) : Math.round(cur['delta']);
 		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
 	}
+};
+
+scout.fetch = function(args) {
+	scout.sgv.data = [];
+	scout.sgv.inRange = [0, 0, 0, 0];
+	scout.sgv.bgSum = 0;
+	scout.sgv.bgCount = 0;
+	superagent.get(scout.config.fetchUrl+"?"+args, function(resp) {
+		var data = JSON.parse(resp.text);
+		scout.sgv.currentEntry = data[0];
+		scout.current.loadSgv();
+		console.log(data);
+		var ldata = [];
+		var dataset = scout.chart.sgv.config.data.datasets[0];
+		dataset.data = [];
+		dataset.pointBackgroundColor = [];
+		for (var i=0; i<data.length; i++) {
+			var obj = data[i];
+			if (!(obj in scout.sgv.data)) {
+				dataset.data.push({
+					x: moment(obj['dateString']),
+					y: obj['sgv']
+				});
+				scout.util.updateInRange(obj['sgv']);
+				window.scout.sgv.bgSum += obj['sgv'];
+				window.scout.sgv.bgCount++;
+			}
+			scout.sgv.data.push(obj);
+			dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
+		}
+		
+		console.log(ldata);
+		scout.chart.sgv.update();
+
+		var bgSet = scout.chart.bg.config.data.datasets[0];
+		bgSet.data = [];
+		for (var i=0; i<scout.sgv.inRange.length; i++) {
+			bgSet.data.push(scout.sgv.inRange[i]);
+		}
+		scout.chart.bg.config.data['middleText'] = scout.util.round(window.scout.sgv.bgSum/window.scout.sgv.bgCount, 0);
+		//displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction'])
+		scout.chart.bg.update();
+
+	});
+}
+
+scout.fetch.gte = function(fmt) {
+	return scout.fetch("find[dateString][$gte]="+fmt+"&count=9999");
+}
+
+scout.fetch.halfday = function() {
+	return scout.fetch.gte(moment().subtract({hours: 12}).format());
+}
+
+scout.fetch.today = function() {
+	return scout.fetch.gte(moment().subtract({hours: 24}).format());
+}
+
+scout.fetch.threeday = function() {
+	return scout.fetch.gte(moment().subtract({hours: 72}).format());
+}
+
+scout.fetch.week = function() {
+	return scout.fetch.gte(moment().subtract({hours: 168}).format());
 }
 
 Chart.pluginService.register({
@@ -284,46 +362,8 @@ window.onload = function() {
 	var bgCtx = document.getElementById("bgCanvas").getContext("2d");
 	scout.chart.bg = new Chart(bgCtx, scout.chartConf.bg);
 
-	scout.sgv.data = [];
-	scout.sgv.inRange = [0, 0, 0, 0];
-	scout.sgv.bgSum = 0;
-	scout.sgv.bgCount = 0;
-	superagent.get(scout.config.fetchUrl, function(resp) {
-		var data = JSON.parse(resp.text);
-		scout.sgv.currentEntry = data[0];
-		scout.current.loadSgv();
-		console.log(data);
-		var ldata = [];
-		var dataset = scout.chart.sgv.config.data.datasets[0];
-		if(!dataset.data) dataset.data = [];
-		if(!dataset.pointBackgroundColor) dataset.pointBackgroundColor = [];
-		for (var i=0; i<data.length; i++) {
-			var obj = data[i];
-			if (!(obj in scout.sgv.data)) {
-				dataset.data.push({
-					x: moment(obj['dateString']),
-					y: obj['sgv']
-				});
-				scout.util.updateInRange(obj['sgv']);
-				window.scout.sgv.bgSum += obj['sgv'];
-				window.scout.sgv.bgCount++;
-			}
-			scout.sgv.data.push(obj);
-			dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
-		}
-		
-		console.log(ldata);
-		scout.chart.sgv.update();
+	scout.fetch.halfday();
 
-		var bgSet = scout.chart.bg.config.data.datasets[0];
-		bgSet.data = [];
-		for (var i=0; i<scout.sgv.inRange.length; i++) {
-			bgSet.data.push(scout.sgv.inRange[i]);
-		}
-		scout.chart.bg.config.data['middleText'] = scout.util.round(window.scout.sgv.bgSum/window.scout.sgv.bgCount, 0);
-		//displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction'])
-		scout.chart.bg.update();
-
-	});
-
+	scout.sgv.bindJump();
+	
 };

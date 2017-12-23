@@ -49,12 +49,11 @@
             </div>
         </section>
           <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-            <div class="mdl-layout__tab-bar mdl-js-ripple-effect mdl-color--primary-light small-tab-bar">
-                <a href="#overview" class="mdl-layout__tab is-active">24 hours</a>
-                <a href="#features" class="mdl-layout__tab">3 days</a>
-                <a href="#features" class="mdl-layout__tab">7 days</a>
-                <a href="#features" class="mdl-layout__tab">14 days</a>
-                <a href="#features" class="mdl-layout__tab">1 month</a>
+            <div class="mdl-layout__tab-bar mdl-color--primary-light small-tab-bar">
+                <a id="sgv-jump-halfday" href="#" class="mdl-layout__tab is-active">12 hours</a>
+                <a id="sgv-jump-today" href="#" class="mdl-layout__tab">24 hours</a>
+                <a id="sgv-jump-threeday" href="#" class="mdl-layout__tab">3 days</a>
+                <a id="sgv-jump-week" href="#" class="mdl-layout__tab">1 week</a>
             </div>
             <div class="mdl-card mdl-cell mdl-cell--12-col">
                 <canvas id="sgvCanvas"></canvas>
@@ -455,15 +454,15 @@ html, body {
 
 
 h2.current-header {
-    margin-left: 10px;
-    font-size: 54px;
-    margin-bottom: 0;
+    font-size: 128px;
+    line-height: 128px;
+    margin: 10px 20px;
 }
 
 h3.current-subhead {
-    margin-top: 0;
-    margin-left: 10px;
-    font-size: 22px;
+    font-size: 32px;
+    line-height: 32px;
+    margin: 0 20px;
 }
 
 
