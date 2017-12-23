@@ -16,10 +16,10 @@ scout.util = {
 		return 'rgb(0, 255, 0)';
 	},
 
-	updateInRange: function(sgv) {
-		if (sgv < scout.config.sgv.target_min) window.scout.sgv.inRange[1]++;
-		else if (sgv > scout.config.sgv.target_max) window.scout.sgv.inRange[3]++;
-		else window.scout.sgv.inRange[2]++;
+	updateInRange: function(obj, sgv) {
+		if (sgv < scout.config.sgv.target_min) obj.inRange[1]++;
+		else if (sgv > scout.config.sgv.target_max) obj.inRange[3]++;
+		else obj.inRange[2]++;
 	},
 
 	pctA1c: function(avg_sgv) {
@@ -244,6 +244,65 @@ scout.chart = {
 	bg: null
 };
 
+scout.inRange = {
+	add: function(date) {
+		scout.fetch.eq(date, function(data) {
+			console.debug("eq data", data);
+			var outer = document.querySelector("#in_range");
+			var tpl = document.querySelector("script#in_range_tpl");
+			var html = tpl.innerHTML;
+			var id = Math.random().toString(36).substring(2);
+			html = html.replace(/\{id\}/g, id)
+				.replace(/\{date\}/g, date);
+			var newDiv = document.createElement("div");
+			newDiv.innerHTML = html;
+			outer.appendChild(newDiv.children[0]);
+			scout.bg.load("in_range_canvas_"+id, data);
+			
+		});
+	}
+};
+
+scout.bg = {
+	init: function(canvasId) {
+		var bgCtx = document.getElementById(canvasId).getContext("2d");
+		return new Chart(bgCtx, scout.chartConf.bg);
+	},
+
+	genChartData: function(data) {
+		var dat = {
+			inRange: [0, 0, 0, 0],
+			bgSum: 0,
+			bgCount: 0
+		};
+		for (var i=0; i<data.length; i++) {
+			var obj = data[i];
+			scout.util.updateInRange(dat, obj['sgv']);
+			dat.bgSum += obj['sgv'];
+			dat.bgCount++;
+		}
+		console.log("chartD", dat);
+		return dat;
+	},
+
+	render: function(chart, chartData) {
+		var bgSet = chart.config.data.datasets[0];
+		bgSet.data = [];
+		for (var i=0; i<chartData.inRange.length; i++) {
+			bgSet.data.push(chartData.inRange[i]);
+		}
+		chart.config.data['middleText'] = scout.util.round(chartData.bgSum/chartData.bgCount, 0);
+		//displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction'])
+		chart.update();
+	},
+
+	load: function(canvasId, data) {
+		var chart = scout.bg.init(canvasId);
+		scout.bg.render(chart, scout.bg.genChartData(data));
+		chart.update();
+	}
+};
+
 scout.sgv = {
 	data: null,
 	currentEntry: null,
@@ -251,48 +310,29 @@ scout.sgv = {
 	bgSum: 0,
 	bgCount: 0,
 
+	init: function() {
+		var sgvCtx = document.getElementById("sgvCanvas").getContext("2d");
+		scout.chart.sgv = new Chart(sgvCtx, scout.chartConf.sgv);
+
+		scout.sgv.bindJump();
+	},
+
 	bindJump: function() {
 		function click(cb) {
 			return function() {
 				this.parentElement.querySelector(".is-active").classList.remove('is-active');
 				this.classList.add('is-active');
-				cb();
+				cb(scout.sgv.callback);
 			}
 		}
 		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(scout.fetch.halfday));
 		document.querySelector("#sgv-jump-today").addEventListener('click', click(scout.fetch.today));
 		document.querySelector("#sgv-jump-threeday").addEventListener('click', click(scout.fetch.threeday));
 		document.querySelector("#sgv-jump-week").addEventListener('click', click(scout.fetch.week));
-	}
-};
+	},
 
-scout.current = {
-	loadSgv: function() {
-		var cur = scout.sgv.currentEntry;
-		if (!cur) return;
 
-		var direction = scout.util.directionToArrow(cur['direction']);
-		var delta = cur['delta'] > 0 ? '+'+Math.round(cur['delta']) : Math.round(cur['delta']);
-		var noise = scout.util.noise(cur['noise']);
-		
-		document.querySelector("#current_sgv").innerHTML = cur['sgv'];
-		document.querySelector("#current_sgv").style.color = scout.util.colorForSgv(cur['sgv']);
-		document.querySelector("#current_direction").innerHTML = direction;
-		document.querySelector("#current_delta").innerHTML = delta;
-		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
-		document.querySelector("#current_noise").innerHTML = noise;
-
-		document.querySelector("title").innerHTML = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
-	}
-};
-
-scout.fetch = function(args) {
-	scout.sgv.data = [];
-	scout.sgv.inRange = [0, 0, 0, 0];
-	scout.sgv.bgSum = 0;
-	scout.sgv.bgCount = 0;
-	superagent.get(scout.config.fetchUrl+"?"+args, function(resp) {
-		var data = JSON.parse(resp.text);
+	callback: function(data) {
 		scout.sgv.currentEntry = data[0];
 		scout.current.loadSgv();
 		console.log(data);
@@ -307,7 +347,7 @@ scout.fetch = function(args) {
 					x: moment(obj['dateString']),
 					y: obj['sgv']
 				});
-				scout.util.updateInRange(obj['sgv']);
+				//scout.util.updateInRange(obj['sgv']);
 				window.scout.sgv.bgSum += obj['sgv'];
 				window.scout.sgv.bgCount++;
 			}
@@ -317,37 +357,63 @@ scout.fetch = function(args) {
 		
 		console.log(ldata);
 		scout.chart.sgv.update();
+	}
+};
 
-		var bgSet = scout.chart.bg.config.data.datasets[0];
-		bgSet.data = [];
-		for (var i=0; i<scout.sgv.inRange.length; i++) {
-			bgSet.data.push(scout.sgv.inRange[i]);
-		}
-		scout.chart.bg.config.data['middleText'] = scout.util.round(window.scout.sgv.bgSum/window.scout.sgv.bgCount, 0);
-		//displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction'])
-		scout.chart.bg.update();
+scout.current = {
+	loadSgv: function() {
+		var cur = scout.sgv.currentEntry;
+		if (!cur) return;
+
+		var direction = scout.util.directionToArrow(cur['direction']);
+		var delta = cur['delta'] > 0 ? '+'+Math.round(cur['delta']) : Math.round(cur['delta']);
+		var noise = scout.util.noise(cur['noise']);
+
+		document.querySelector("#current_sgv").innerHTML = cur['sgv'];
+		document.querySelector("#current_sgv").style.color = scout.util.colorForSgv(cur['sgv']);
+		document.querySelector("#current_direction").innerHTML = direction;
+		document.querySelector("#current_delta").innerHTML = delta;
+		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
+		document.querySelector("#current_noise").innerHTML = noise;
+
+		document.querySelector("title").innerHTML = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
+	}
+};
+
+scout.fetch = function(args, cb) {
+	scout.sgv.data = [];
+	scout.sgv.inRange = [0, 0, 0, 0];
+	scout.sgv.bgSum = 0;
+	scout.sgv.bgCount = 0;
+	superagent.get(scout.config.fetchUrl+"?"+args, function(resp) {
+		var data = JSON.parse(resp.text);
+		cb(data);
 
 	});
 }
 
-scout.fetch.gte = function(fmt) {
-	return scout.fetch("find[dateString][$gte]="+fmt+"&count=9999");
+scout.fetch.gte = function(fmt, cb) {
+	return scout.fetch("find[dateString][$gte]="+fmt+"&count=9999", cb);
 }
 
-scout.fetch.halfday = function() {
-	return scout.fetch.gte(moment().subtract({hours: 12}).format());
+scout.fetch.eq = function(fmt, cb) {
+	return scout.fetch("find[dateString][$gte]="+fmt+"&find[dateString][$lt]="+moment(fmt).add({hours: 24}).format()+"&count=9999", cb);
 }
 
-scout.fetch.today = function() {
-	return scout.fetch.gte(moment().subtract({hours: 24}).format());
+scout.fetch.halfday = function(cb) {
+	return scout.fetch.gte(moment().subtract({hours: 12}).format(), cb);
 }
 
-scout.fetch.threeday = function() {
-	return scout.fetch.gte(moment().subtract({hours: 72}).format());
+scout.fetch.today = function(cb) {
+	return scout.fetch.gte(moment().subtract({hours: 24}).format(), cb);
 }
 
-scout.fetch.week = function() {
-	return scout.fetch.gte(moment().subtract({hours: 168}).format());
+scout.fetch.threeday = function(cb) {
+	return scout.fetch.gte(moment().subtract({hours: 72}).format(), cb);
+}
+
+scout.fetch.week = function(cb) {
+	return scout.fetch.gte(moment().subtract({hours: 168}).format(), cb);
 }
 
 Chart.pluginService.register({
@@ -374,14 +440,7 @@ Chart.pluginService.register({
 });
 
 window.onload = function() {
-	var sgvCtx = document.getElementById("sgvCanvas").getContext("2d");
-	scout.chart.sgv = new Chart(sgvCtx, scout.chartConf.sgv);
-
-	var bgCtx = document.getElementById("bgCanvas").getContext("2d");
-	scout.chart.bg = new Chart(bgCtx, scout.chartConf.bg);
-
-	scout.fetch.halfday();
-
-	scout.sgv.bindJump();
+	scout.sgv.init();
+	scout.fetch.halfday(scout.sgv.callback);
 	
 };
