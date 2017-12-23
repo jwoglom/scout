@@ -245,21 +245,44 @@ scout.chart = {
 };
 
 scout.inRange = {
+	init: function() {
+		scout.inRange.add("2017-12-22");
+		scout.inRange.add("2017-12-21");
+		scout.inRange.add("2017-12-20");
+	},
+
 	add: function(date) {
 		scout.fetch.eq(date, function(data) {
 			console.debug("eq data", data);
 			var outer = document.querySelector("#in_range");
 			var tpl = document.querySelector("script#in_range_tpl");
-			var html = tpl.innerHTML;
 			var id = Math.random().toString(36).substring(2);
-			html = html.replace(/\{id\}/g, id)
+			var html = tpl.innerHTML
+				.replace(/\{id\}/g, id)
 				.replace(/\{date\}/g, date);
+			var dict = scout.inRange.dataDict(data, id, date);
+			for (var key in dict) {
+				html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+			}
 			var newDiv = document.createElement("div");
 			newDiv.innerHTML = html;
 			outer.appendChild(newDiv.children[0]);
 			scout.bg.load("in_range_canvas_"+id, data);
 			
 		});
+	},
+
+	dataDict: function(data, id, date) {
+		var dict = {};
+		var chartData = scout.bg.genChartData(data);
+
+		dict['header_date'] = moment(date).format("MMMM Qo, YYYY");
+
+		var stats = "In range: "+scout.util.round(chartData.inRange[2]/chartData.bgCount, 4)*100+"%<br>" +
+					"Average BG: "+scout.util.round(chartData.bgSum/chartData.bgCount, 0);
+		dict['stats'] = stats;
+
+		return dict;
 	}
 };
 

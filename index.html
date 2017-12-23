@@ -24,7 +24,7 @@
 			<div class="mdl-layout__tab-bar mdl-js-ripple-effect mdl-color--primary-dark">
 
 				<a href="#overview" class="mdl-layout__tab is-active">Overview</a>
-				<a href="#in_range" class="mdl-layout__tab">In Range</a>
+				<a onclick="scout.inRange.init()" href="#in_range" class="mdl-layout__tab">In Range</a>
 				<a href="#features" class="mdl-layout__tab">Hourly</a>
 			</div>
 		</header>
@@ -66,7 +66,7 @@
 						</div>
 						<div class="mdl-card mdl-cell mdl-cell--9-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
 							<div class="mdl-card__supporting-text">
-								<h4>{date}</h4>
+								<h4>{header_date}</h4>
 								
 								{stats}
 							</div>
