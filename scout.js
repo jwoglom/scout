@@ -63,6 +63,16 @@ scout.util = {
 		if (mins < 1) return "just now";
 		if (mins == 1) return "1 min ago";
 		return mins+" mins ago";
+	},
+
+	noise: function(n) {
+		return [
+			'?',
+			'✓',
+			'⚠ LIGHT NOISE ⚠',
+			'⚠ MODERATE NOISE ⚠',
+			'⚠ HIGH NOISE ⚠'
+		][parseInt(n)];
 	}
 };
 
@@ -261,10 +271,18 @@ scout.current = {
 		var cur = scout.sgv.currentEntry;
 		if (!cur) return;
 
+		var direction = scout.util.directionToArrow(cur['direction']);
+		var delta = cur['delta'] > 0 ? '+'+Math.round(cur['delta']) : Math.round(cur['delta']);
+		var noise = scout.util.noise(cur['noise']);
+		
 		document.querySelector("#current_sgv").innerHTML = cur['sgv'];
-		document.querySelector("#current_direction").innerHTML = scout.util.directionToArrow(cur['direction']);
-		document.querySelector("#current_delta").innerHTML = cur['delta'] > 0 ? '+'+Math.round(cur['delta']) : Math.round(cur['delta']);
+		document.querySelector("#current_sgv").style.color = scout.util.colorForSgv(cur['sgv']);
+		document.querySelector("#current_direction").innerHTML = direction;
+		document.querySelector("#current_delta").innerHTML = delta;
 		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
+		document.querySelector("#current_noise").innerHTML = noise;
+
+		document.querySelector("title").innerHTML = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
 	}
 };
 
