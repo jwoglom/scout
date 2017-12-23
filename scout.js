@@ -461,6 +461,33 @@ scout.current = {
 		document.querySelector("#current_noise").innerHTML = noise;
 
 		document.querySelector("title").innerHTML = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
+		scout.current.updateFavicon(cur);
+	},
+
+	updateFavicon: function(cur) {
+		var sgv = parseInt(cur['sgv']);
+		var arrow = scout.util.directionToArrow(cur['direction']);
+		var noise = scout.util.noise(cur['noise']);
+		if (noise.length > 1) arrow = noise.substring(0, 1);
+		var canvas = document.getElementById("favicon_canvas");
+		with (canvas.getContext("2d")) {
+			clearRect(0, 0, canvas.width, canvas.height);
+			fillStyle = scout.util.colorForSgv(sgv);
+			fillRect(0, 0, 64, 64);
+
+			fillStyle = "rgb(0,0,0)";
+			textAlign = "center";
+
+			font = "bold 40px Arial";
+			fillText(arrow, 32, 25);
+
+			font = "40px Arial";
+			fillText(sgv, 32, 63);
+		}
+		var link = document.querySelector("link[rel='icon']");
+		var pngImg = canvas.toDataURL("image/png");
+		link.setAttribute('type', 'image/png');
+		link.setAttribute('href', pngImg);
 	}
 };
 
