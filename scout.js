@@ -276,7 +276,7 @@ scout.inRange = {
 		var dict = {};
 		var chartData = scout.bg.genChartData(data);
 
-		dict['header_date'] = moment(date).format("MMMM Qo, YYYY");
+		dict['header_date'] = moment(date).format("MMMM Do, YYYY");
 
 		var stats = "In range: "+scout.util.round(chartData.inRange[2]/chartData.bgCount, 4)*100+"%<br>" +
 					"Average BG: "+scout.util.round(chartData.bgSum/chartData.bgCount, 0);
@@ -289,7 +289,8 @@ scout.inRange = {
 scout.bg = {
 	init: function(canvasId) {
 		var bgCtx = document.getElementById(canvasId).getContext("2d");
-		return new Chart(bgCtx, scout.chartConf.bg);
+		var bgConf = Object.assign({}, scout.chartConf.bg);
+		return new Chart(bgCtx, bgConf);
 	},
 
 	genChartData: function(data) {
@@ -314,8 +315,14 @@ scout.bg = {
 		for (var i=0; i<chartData.inRange.length; i++) {
 			bgSet.data.push(chartData.inRange[i]);
 		}
-		chart.config.data['middleText'] = scout.util.round(chartData.bgSum/chartData.bgCount, 0);
+		var middleText = scout.util.round(chartData.inRange[2]/chartData.bgCount, 2)*100+'%';
+		// scout.util.round(chartData.bgSum/chartData.bgCount, 0);
 		//displayedData[0]['sgv'] +' ' +directionToArrow(displayedData[0]['direction'])
+		chart.config.options['elements']['center'] = {
+			maxText: '100%',
+			text: middleText,
+			fontColor: 'rgb(0, 0, 0)'
+		};
 		chart.update();
 	},
 
@@ -439,27 +446,66 @@ scout.fetch.week = function(cb) {
 	return scout.fetch.gte(moment().subtract({hours: 168}).format(), cb);
 }
 
+Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({
-  beforeDraw: function(chart) {
-    var width = chart.chart.width,
-        height = chart.chart.height,
-        ctx = chart.chart.ctx;
+	afterUpdate: function (chart) {
+		if (chart.config.options.elements.center) {
+			var helpers = Chart.helpers;
+			var centerConfig = chart.config.options.elements.center;
+			var globalConfig = Chart.defaults.global;
+			var ctx = chart.chart.ctx;
 
-    ctx.restore();
-    if (chart.config.type != 'doughnut') return;
-    var fontSize = (height / 114).toFixed(2);
-    ctx.font = fontSize + "em sans-serif";
-    ctx.textBaseline = "middle";
+			var fontStyle = helpers.getValueOrDefault(centerConfig.fontStyle, globalConfig.defaultFontStyle);
+			var fontFamily = helpers.getValueOrDefault(centerConfig.fontFamily, globalConfig.defaultFontFamily);
 
-    if ('middleText' in chart.config.data) {
-	    var text = chart.config.data['middleText'],
-	        textX = Math.round((width - ctx.measureText(text).width) / 2),
-	        textY = height / 2;
+			if (centerConfig.fontSize)
+				var fontSize = centerConfig.fontSize;
+			// figure out the best font size, if one is not specified
+			else {
+				ctx.save();
+				var fontSize = helpers.getValueOrDefault(centerConfig.minFontSize, 1);
+				var maxFontSize = helpers.getValueOrDefault(centerConfig.maxFontSize, 256);
+				var maxText = helpers.getValueOrDefault(centerConfig.maxText, centerConfig.text);
 
-	    ctx.fillText(text, textX, textY);
-	    ctx.save();
-	}
-  }
+				do {
+					ctx.font = helpers.fontString(fontSize, fontStyle, fontFamily);
+					var textWidth = ctx.measureText(maxText).width;
+
+					// check if it fits, is within configured limits and that we are not simply toggling back and forth
+					if (textWidth < chart.innerRadius * 2 && fontSize < maxFontSize)
+						fontSize += 1;
+					else {
+						// reverse last step
+						fontSize -= 1;
+						break;
+					}
+				} while (true)
+				ctx.restore();
+			}
+
+			// save properties
+			chart.center = {
+				font: helpers.fontString(fontSize, fontStyle, fontFamily),
+				fillStyle: helpers.getValueOrDefault(centerConfig.fontColor, globalConfig.defaultFontColor)
+			};
+		}
+	},
+	afterDraw: function (chart) {
+		if (chart.center) {
+			var centerConfig = chart.config.options.elements.center;
+			var ctx = chart.chart.ctx;
+
+			ctx.save();
+			ctx.font = chart.center.font;
+			ctx.fillStyle = chart.center.fillStyle;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			var centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+			var centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+			ctx.fillText(centerConfig.text, centerX, centerY);
+			ctx.restore();
+		}
+	},
 });
 
 window.onload = function() {
