@@ -246,40 +246,56 @@ scout.chart = {
 
 scout.inRange = {
 	init: function() {
-		scout.inRange.add("2017-12-22");
-		scout.inRange.add("2017-12-21");
-		scout.inRange.add("2017-12-20");
+		scout.inRange.addDay("2017-12-22");
+		scout.inRange.addDay("2017-12-21");
+		scout.inRange.addDay("2017-11-20");
 	},
 
-	add: function(date) {
+	addDay: function(date) {
 		scout.fetch.eq(date, function(data) {
-			console.debug("eq data", data);
-			var outer = document.querySelector("#in_range");
-			var tpl = document.querySelector("script#in_range_tpl");
-			var id = Math.random().toString(36).substring(2);
-			var html = tpl.innerHTML
-				.replace(/\{id\}/g, id)
-				.replace(/\{date\}/g, date);
-			var dict = scout.inRange.dataDict(data, id, date);
-			for (var key in dict) {
-				html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
-			}
-			var newDiv = document.createElement("div");
-			newDiv.innerHTML = html;
-			outer.appendChild(newDiv.children[0]);
-			scout.bg.load("in_range_canvas_"+id, data);
-			
+			scout.inRange.embedSingle(data, [date]);
 		});
 	},
 
-	dataDict: function(data, id, date) {
+	addRange: function(st_date, end_date) {
+		scout.fetch.range(st_date, end_date, function(data) {
+			scout.inRange.embedSingle(data, [st_date, end_date]);
+		});
+	},
+
+	embedSingle: function(data, dates) {
+		console.debug("embed data", data);
+		var outer = document.querySelector("#in_range");
+		var tpl = document.querySelector("script#in_range_tpl");
+		var id = Math.random().toString(36).substring(2);
+		var html = tpl.innerHTML
+			.replace(/\{id\}/g, id)
+			.replace(/\{date\}/g, dates.join("--"));
+		var dict = scout.inRange.dataDict(data, id, dates);
+		for (var key in dict) {
+			html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+		}
+		var newDiv = document.createElement("div");
+		newDiv.innerHTML = html;
+		outer.appendChild(newDiv.children[0]);
+		scout.bg.load("in_range_canvas_"+id, data);
+	},
+
+	dataDict: function(data, id, dates) {
 		var dict = {};
 		var chartData = scout.bg.genChartData(data);
 
-		dict['header_date'] = moment(date).format("MMMM Do, YYYY");
+		if (dates.length == 1) {
+			dict['header_date'] = moment(dates[0]).format("MMMM Do, YYYY");
+		} else {
+			dict['header_date'] = moment(dates[0]).format("MMMM Do")+" - "+moment(dates[1]).format("MMMM Do, YYYY");
+		}
 
-		var stats = "In range: "+scout.util.round(chartData.inRange[2]/chartData.bgCount, 4)*100+"%<br>" +
-					"Average BG: "+scout.util.round(chartData.bgSum/chartData.bgCount, 0);
+		var inRangePct = chartData.inRange[2]/chartData.bgCount
+		var avgBg = chartData.bgSum/chartData.bgCount
+
+		var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
+					"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)";
 		dict['stats'] = stats;
 
 		return dict;
@@ -426,8 +442,12 @@ scout.fetch.gte = function(fmt, cb) {
 	return scout.fetch("find[dateString][$gte]="+fmt+"&count=9999", cb);
 }
 
+scout.fetch.range = function(st, end, cb) {
+	return scout.fetch("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=9999", cb);
+}
+
 scout.fetch.eq = function(fmt, cb) {
-	return scout.fetch("find[dateString][$gte]="+fmt+"&find[dateString][$lt]="+moment(fmt).add({hours: 24}).format()+"&count=9999", cb);
+	return scout.fetch.range(fmt, moment(fmt).add({hours: 24}).format(), cb);
 }
 
 scout.fetch.halfday = function(cb) {
