@@ -1,0 +1,44 @@
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<link rel="icon" type="image/png" href="" />
+</head>
+<body>
+<canvas id="temp" width=64 height=64 style="border:2px solid black"></canvas>
+<script type="text/javascript">
+var arrowObj = {NONE: unescape('%u21FC'), 
+DoubleUp: unescape('%u21C8'),
+SingleUp: unescape('%u2191'),
+FortyFiveUp: unescape('%u2197'),
+Flat: unescape('%u2192'),
+FortyFiveDown: unescape('%u2198'),
+SingleDown: unescape('%u2193'),
+DoubleDown: unescape('%u21CA'),
+'NOT COMPUTABLE': '-',
+'RATE OUT OF RANGE': unescape('%u21D5')};
+var arrows = Object.values(arrowObj);
+
+var ari = 0;
+setInterval(function() {
+	var bg = parseInt(Math.random()*300);
+	var arrow = arrows[ari];
+	ari = (ari+1)%arrows.length;
+	var canvas = document.getElementById("temp");
+	with (canvas.getContext("2d")) {
+		//fillStyle = "green";
+		//fillRect(20, 20, 50, 50);
+		clearRect(0, 0, canvas.width, canvas.height);
+	}
+	with (canvas.getContext("2d")) {
+		font = "40px Arial";
+		fillText(bg, -1, 63);
+		font = "40px Arial";
+		fillText(arrow, 10, 30);
+	}
+	var link = document.querySelector("link[rel='icon']");
+	var pngImg = canvas.toDataURL("image/png");
+	link.setAttribute('href', pngImg);
+}, 1000);
+</script>
+</body>
+</html>
