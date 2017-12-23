@@ -91,6 +91,9 @@ scout.chartConf = {
 			}]
 		},
 		options: {
+			// custom
+			usePointBackgroundColor: true,
+
 			responsive: true,
 	        title: {
 	            text: "Glucose"
@@ -100,15 +103,15 @@ scout.chartConf = {
 					type: "time",
 					time: {
 						format: scout.config.timeFormat,
-						unit: 'hour',
-						unitStepSize: 4,
+						//unit: 'hour',
+						//unitStepSize: 4,
 						displayFormats: {
 							'minute': 'hh:mm a',
 							'hour': 'hh:mm a',
-							'day': 'll'
+							'day': 'MMM D'
 						},
 						// round: 'day'
-						tooltipFormat: 'll hh:mm a'
+						tooltipFormat: 'MMM D hh:mm a'
 					},
 					scaleLabel: {
 						display: false,
@@ -246,9 +249,10 @@ scout.chart = {
 
 scout.inRange = {
 	init: function() {
-		scout.inRange.addDay("2017-12-22");
-		scout.inRange.addDay("2017-12-21");
-		scout.inRange.addDay("2017-11-20");
+		scout.inRange.addRange("2017-12-01", "2017-12-20");
+		scout.inRange.addDay("2017-12-01");
+		scout.inRange.addDay("2017-12-05");
+		scout.inRange.addDay("2017-11-10");
 	},
 
 	addDay: function(date) {
@@ -279,6 +283,7 @@ scout.inRange = {
 		newDiv.innerHTML = html;
 		outer.appendChild(newDiv.children[0]);
 		scout.bg.load("in_range_canvas_"+id, data);
+		scout.sgv.load("in_range_sgv_canvas_"+id, data, {tooltips: true, thinLines: true});
 	},
 
 	dataDict: function(data, id, dates) {
@@ -295,7 +300,8 @@ scout.inRange = {
 		var avgBg = chartData.bgSum/chartData.bgCount
 
 		var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
-					"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)";
+					"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)<br>"+
+					"Total entries: "+chartData.bgCount;
 		dict['stats'] = stats;
 
 		return dict;
@@ -305,7 +311,8 @@ scout.inRange = {
 scout.bg = {
 	init: function(canvasId) {
 		var bgCtx = document.getElementById(canvasId).getContext("2d");
-		var bgConf = Object.assign({}, scout.chartConf.bg);
+		// hack for deep clone. we don't want to store data in chartConf.
+		var bgConf = JSON.parse(JSON.stringify(scout.chartConf.bg));
 		return new Chart(bgCtx, bgConf);
 	},
 
@@ -346,21 +353,33 @@ scout.bg = {
 		var chart = scout.bg.init(canvasId);
 		scout.bg.render(chart, scout.bg.genChartData(data));
 		chart.update();
+		return chart;
 	}
 };
 
 scout.sgv = {
-	data: null,
-	currentEntry: null,
-	inRange: null,
-	bgSum: 0,
-	bgCount: 0,
-
-	init: function() {
-		var sgvCtx = document.getElementById("sgvCanvas").getContext("2d");
-		scout.chart.sgv = new Chart(sgvCtx, scout.chartConf.sgv);
-
+	primaryInit: function() {
+		scout.chart.sgv = scout.sgv.init("sgvCanvas");
 		scout.sgv.bindJump();
+	},
+
+	init: function(canvasId, extraConf) {
+		var sgvCtx = document.getElementById(canvasId).getContext("2d");
+		// single-layer copy. can't use full deep copy due to moment()
+		var sgvConf = Object.assign({}, scout.chartConf.sgv);
+
+		if (extraConf) {
+			sgvConf['options']['tooltips'] = {enabled: extraConf['tooltips']};
+			sgvConf['options']['usePointBackgroundColor'] = extraConf['usePointBackgroundColor'];
+			if (extraConf['thinLines']) {
+				sgvConf['data']['datasets'][0]['borderWidth'] = 2;
+				sgvConf['options']['elements'] = {point: {radius: 0}};
+			}
+		}
+
+		// hack for deep copy of data fields.
+		sgvConf.data = JSON.parse(JSON.stringify(scout.chartConf.sgv.data));
+		return new Chart(sgvCtx, sgvConf);
 	},
 
 	bindJump: function() {
@@ -368,7 +387,7 @@ scout.sgv = {
 			return function() {
 				this.parentElement.querySelector(".is-active").classList.remove('is-active');
 				this.classList.add('is-active');
-				cb(scout.sgv.callback);
+				cb(scout.sgv.primaryCallback);
 			}
 		}
 		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(scout.fetch.halfday));
@@ -377,38 +396,49 @@ scout.sgv = {
 		document.querySelector("#sgv-jump-week").addEventListener('click', click(scout.fetch.week));
 	},
 
+	primaryCallback: function(data) {
+		return scout.sgv.callback(scout.chart.sgv, data);
+	},
 
-	callback: function(data) {
-		scout.sgv.currentEntry = data[0];
-		scout.current.loadSgv();
+	callback: function(chart, data) {
+		if (chart === scout.chart.sgv) {
+			console.log("isSGVchart");
+			scout.current.currentEntry = data[0];
+			scout.current.loadSgv();
+		}
 		console.log(data);
 		var ldata = [];
-		var dataset = scout.chart.sgv.config.data.datasets[0];
+		var dataset = chart.config.data.datasets[0];
 		dataset.data = [];
-		dataset.pointBackgroundColor = [];
+		if (chart.options.usePointBackgroundColor) dataset.pointBackgroundColor = [];
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
-			if (!(obj in scout.sgv.data)) {
-				dataset.data.push({
-					x: moment(obj['dateString']),
-					y: obj['sgv']
-				});
-				//scout.util.updateInRange(obj['sgv']);
-				window.scout.sgv.bgSum += obj['sgv'];
-				window.scout.sgv.bgCount++;
+			dataset.data.push({
+				x: moment(obj['dateString']),
+				y: obj['sgv']
+			});
+			if (chart.options.usePointBackgroundColor) {
+				dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
 			}
-			scout.sgv.data.push(obj);
-			dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
 		}
 		
 		console.log(ldata);
-		scout.chart.sgv.update();
+		chart.update();
+	},
+
+
+	load: function(canvasId, data, extraConf) {
+		var chart = scout.sgv.init(canvasId, extraConf);
+		scout.sgv.callback(chart, data);
+		chart.update();
+		return chart;
 	}
 };
 
 scout.current = {
+	currentEntry: null,
 	loadSgv: function() {
-		var cur = scout.sgv.currentEntry;
+		var cur = scout.current.currentEntry;
 		if (!cur) return;
 
 		var direction = scout.util.directionToArrow(cur['direction']);
@@ -427,10 +457,6 @@ scout.current = {
 };
 
 scout.fetch = function(args, cb) {
-	scout.sgv.data = [];
-	scout.sgv.inRange = [0, 0, 0, 0];
-	scout.sgv.bgSum = 0;
-	scout.sgv.bgCount = 0;
 	superagent.get(scout.config.fetchUrl+"?"+args, function(resp) {
 		var data = JSON.parse(resp.text);
 		cb(data);
@@ -529,7 +555,7 @@ Chart.pluginService.register({
 });
 
 window.onload = function() {
-	scout.sgv.init();
-	scout.fetch.halfday(scout.sgv.callback);
+	scout.sgv.primaryInit();
+	scout.fetch.halfday(scout.sgv.primaryCallback);
 	
 };
