@@ -231,6 +231,12 @@ scout.chartConf = {
 				fill: false,
 				data: []
 			}, {
+				label: "Average",
+				backgroundColor: 'rgba(255, 255, 0, 0.5)',
+				borderColor: 'rgb(255, 255, 0)',
+				fill: false,
+				data: []
+			}, {
 				label: "25%",
 				backgroundColor: 'rgba(0, 0, 255, 0.5)',
 				borderColor: 'rgb(0, 0, 255)',
@@ -271,11 +277,10 @@ scout.chartConf = {
 						//unitStepSize: 4,
 						displayFormats: {
 							'minute': 'hh:mm a',
-							'hour': 'hh:mm a',
-							'day': 'MMM D'
+							'hour': 'hh:mm a'
 						},
 						// round: 'day'
-						tooltipFormat: 'MMM D hh:mm a'
+						tooltipFormat: 'hh:mm a'
 					},
 					scaleLabel: {
 						display: false,
@@ -592,6 +597,7 @@ scout.pct = {
 		console.log("perMins", perMins);
 
 		var median = [];
+		var avg = [];
 		var pct25 = [];
 		var pct10 = [];
 		function percentile(arr, p) {
@@ -611,10 +617,13 @@ scout.pct = {
 
 		for (var i=0; i<perMins.length; i++) {
 			var sgvObjs = perMins[i];
+			var av = 0;
 			var rawSgvs = [];
 			for (var j=0; j<sgvObjs.length; j++) {
 				rawSgvs.push(sgvObjs[j]['sgv']);
+				av += parseInt(sgvObjs[j]['sgv']);
 			}
+			av = av/rawSgvs.length;
 			rawSgvs.sort();
 			if (rawSgvs.length % 2 == 0) {
 				median[i] = (rawSgvs[rawSgvs.length/2 - 1] + rawSgvs[rawSgvs.length/2])/2;
@@ -623,11 +632,14 @@ scout.pct = {
 			}
 			pct25[i] = percentile(rawSgvs, 0.25);
 			pct10[i] = percentile(rawSgvs, 0.10);
+			avg[i] = av;
 
 		}
 		console.log("median", median);
+		console.log("avg", avg);
 		return {
 			"median": median,
+			"avg": avg,
 			"pct25": pct25,
 			"pct10": pct10
 		};
@@ -639,6 +651,7 @@ scout.pct = {
 		var median = chartData["median"];
 		var pct25 = chartData["pct25"];
 		var pct10 = chartData["pct10"];
+		var avg = chartData["avg"];
 		var stDay = moment().startOf('day');
 		{
 			// median
@@ -653,8 +666,20 @@ scout.pct = {
 			}
 		}
 		{
-			// 25-low
+			// avg
 			var dataset = chart.config.data.datasets[1];
+			dataset.data = [];
+			for (var i=0; i<avg.length; i++) {
+				var date = stDay.clone().add({minutes: i*15});
+				dataset.data.push({
+					x: date,
+					y: avg[i]
+				});
+			}
+		}
+		{
+			// 25-low
+			var dataset = chart.config.data.datasets[2];
 			dataset.data = [];
 			for (var i=0; i<pct25.length; i++) {
 				var date = stDay.clone().add({minutes: i*15});
@@ -666,7 +691,7 @@ scout.pct = {
 		}
 		{
 			// 25-hi
-			var dataset = chart.config.data.datasets[2];
+			var dataset = chart.config.data.datasets[3];
 			dataset.data = [];
 			for (var i=0; i<pct25.length; i++) {
 				var date = stDay.clone().add({minutes: i*15});
@@ -678,7 +703,7 @@ scout.pct = {
 		}
 		{
 			// 10-low
-			var dataset = chart.config.data.datasets[3];
+			var dataset = chart.config.data.datasets[4];
 			dataset.data = [];
 			for (var i=0; i<pct10.length; i++) {
 				var date = stDay.clone().add({minutes: i*15});
@@ -690,7 +715,7 @@ scout.pct = {
 		}
 		{
 			// 10-hi
-			var dataset = chart.config.data.datasets[4];
+			var dataset = chart.config.data.datasets[5];
 			dataset.data = [];
 			for (var i=0; i<pct10.length; i++) {
 				var date = stDay.clone().add({minutes: i*15});
