@@ -494,9 +494,11 @@ scout.current = {
 
 		if (scout.util.isOldData(cur['date'])) {
 			direction = "old";
-			document.querySelector("#current_minsago").style.color = 'rgb(255,0,0)';
+			document.querySelector("#current_sgv").classList.add('old-data');
+			document.querySelector("#current_minsago").classList.add('old-data');
 		} else {
-			document.querySelector("#current_minsago").style.color = '';
+			document.querySelector("#current_sgv").classList.remove('old-data');
+			document.querySelector("#current_minsago").classList.remove('old-data');
 		}
 
 		document.querySelector("#current_sgv").innerHTML = sgvText;
