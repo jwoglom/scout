@@ -290,14 +290,25 @@ scout.chart = {
 };
 
 scout.inRange = {
-	initOnce: false,
 	init: function() {
-		if (scout.inRange.initOnce) return;
-		scout.inRange.initOnce = true;
-		scout.inRange.addRange("2017-12-01", "2017-12-20");
-		scout.inRange.addDay("2017-12-01");
-		scout.inRange.addDay("2017-12-05");
-		scout.inRange.addDay("2017-11-10");
+		var today = moment().format("YYYY-MM-DD");
+		var lastwk = moment().subtract({days: 7}).format("YYYY-MM-DD");
+		document.querySelector("#in_range_single").value = today;
+		document.querySelector("#in_range_start").value = lastwk;
+		document.querySelector("#in_range_end").value = today;
+
+	},
+
+	submitFormSingle: function() {
+		var date = document.querySelector("#in_range_single").value;
+		scout.inRange.addDay(moment(date).format());
+	},
+
+
+	submitFormRange: function() {
+		var date1 = moment(document.querySelector("#in_range_start").value);
+		var date2 = moment(document.querySelector("#in_range_end").value);
+		scout.inRange.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format());
 	},
 
 	addDay: function(date) {
@@ -614,11 +625,11 @@ scout.fetch = function(args, cb) {
 }
 
 scout.fetch.gte = function(fmt, cb) {
-	return scout.fetch("find[dateString][$gte]="+fmt+"&count=9999", cb);
+	return scout.fetch("find[dateString][$gte]="+fmt+"&count=99999", cb);
 }
 
 scout.fetch.range = function(st, end, cb) {
-	return scout.fetch("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=9999", cb);
+	return scout.fetch("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999", cb);
 }
 
 scout.fetch.eq = function(fmt, cb) {

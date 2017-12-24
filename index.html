@@ -74,6 +74,42 @@
 				</section>
 			</div>
 			<div class="mdl-layout__tab-panel" id="in_range">
+				<section class="in_range_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+						<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+							<div class="mdl-card__supporting-text">
+								<h4>Date or Date Range:</h4>
+								<form onsubmit="return false" id="in_range_single_form">
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="in_range_single" placeholder="">
+									    <label class="mdl-textfield__label" for="in_range_single">Date</label>
+									</div>
+									<br />
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.inRange.submitFormSingle()">
+										View
+									</button>
+								</form>
+							</div>
+						</div>
+						<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+							<div class="mdl-card__supporting-text">
+								<form onsubmit="return false" id="in_range_range_form">
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="in_range_start" placeholder="">
+									    <label class="mdl-textfield__label" for="in_range_start">Start Date</label>
+									</div>
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="in_range_end" placeholder="">
+									    <label class="mdl-textfield__label" for="in_range_end">End Date</label>
+									</div>
+									<br />
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.inRange.submitFormRange()">
+										View
+									</button>
+								</form>
+							</div>
+						</div>
+						
+	          		</section>
 				<script type="text/template" id="in_range_tpl">
 					<section class="in_range_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="in_range_section_{id}">
 						<div class="mdl-cell mdl-cell--3-col-desktop mdl-cell--2-col-tablet mdl-cell--4-col-phone">
@@ -82,13 +118,11 @@
 						<div class="mdl-card mdl-cell mdl-cell--9-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
 							<div class="mdl-card__supporting-text">
 								<h4>{header_date}</h4>
-								
 								{stats}
 								<canvas id="in_range_sgv_canvas_{id}" height=50></canvas>
 							</div>
 							
 						</div>
-						
 	          		</section>
 	          	</script>
 			</div>
