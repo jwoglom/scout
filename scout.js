@@ -491,9 +491,16 @@ scout.current = {
 		var tobj = document.querySelector("title");
 		if (tobj.innerHTML != title) tobj.innerHTML = title;
 		scout.current.updateFavicon(cur);
+		scout.current.notify(cur);
 	},
 
 	updateFavicon: function(cur) {
+		var link = document.querySelector("link[rel='icon']");
+		link.setAttribute('type', 'image/png');
+		link.setAttribute('href', scout.current.buildBgIcon(cur));
+	},
+
+	buildBgIcon: function(cur) {
 		var sgv = parseInt(cur['sgv']);
 		var arrow = scout.util.directionToThickArrow(cur['direction']);
 		var noise = scout.util.noise(cur['noise']);
@@ -513,10 +520,49 @@ scout.current = {
 			font = "40px Arial";
 			fillText(sgv, 32, 63);
 		}
-		var link = document.querySelector("link[rel='icon']");
-		var pngImg = canvas.toDataURL("image/png");
-		link.setAttribute('type', 'image/png');
-		link.setAttribute('href', pngImg);
+		return canvas.toDataURL("image/png");
+	},
+
+	shouldNotify: function(cur) {
+		return (cur['noise'] > 1 || cur['sgv'] < scout.config.sgv.target_min || cur['sgv'] > scout.config.sgv.target_max) && (cur != scout.current.nflast);
+	},
+
+	nfobj: null,
+	nflast: null,
+
+	notify: function(cur, force) {
+		if (!("Notification" in window)) return;
+		if (Notification.permission == "granted") {
+
+			if (scout.current.shouldNotify(cur) || !!force) {
+				scout.current.nflast = cur;
+				var direction = scout.util.directionToArrow(cur['direction']);
+				var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
+				var noise = scout.util.noise(cur['noise']);
+
+				var text = "BG level is "+cur['sgv']+""+direction;
+				var body = "Delta: "+delta+"  Noise: "+noise;
+				var bgIcon = scout.current.buildBgIcon(cur);
+				var options = {
+					body: body,
+					icon: bgIcon,
+					badge: bgIcon,
+					tag: "scout-notify"
+				}
+				if (scout.current.nfobj) scout.current.nfobj.close();
+				scout.current.nfobj = new Notification(text, options);
+				scout.current.nfobj.onclick = function(event) {
+					window.focus();
+					document.body.focus();
+					this.close();
+				}
+				return scout.current.nfobj;
+			}
+		} else if (Notification.permission != "denied") {
+			Notification.requestPermission(function(permission) {
+				if (permission == "granted") scout.current.notify(cur);
+			});
+		}
 	}
 };
 
