@@ -231,22 +231,32 @@ scout.chartConf = {
 				fill: false,
 				data: []
 			}, {
-				label: "25-75%",
+				label: "25%",
 				backgroundColor: 'rgba(0, 0, 255, 0.5)',
 				borderColor: 'rgb(0, 0, 255)',
 				fill: false,
 				data: []
 			}, {
-				label: "10-90%",
+				label: "75%",
+				backgroundColor: 'rgba(0, 0, 255, 0.5)',
+				borderColor: 'rgb(0, 0, 255)',
+				fill: '-1',
+				data: []
+			}, {
+				label: "10%",
 				backgroundColor: 'rgba(255, 0, 0, 0.5)',
 				borderColor: 'rgb(255, 0, 0)',
 				fill: false,
 				data: []
+			}, {
+				label: "90%",
+				backgroundColor: 'rgba(255, 0, 0, 0.5)',
+				borderColor: 'rgb(255, 0, 0)',
+				fill: '-1',
+				data: []
 			}]
 		},
 		options: {
-			// custom
-			usePointBackgroundColor: true,
 
 			responsive: true,
 	        title: {
@@ -287,6 +297,11 @@ scout.chartConf = {
 			},
 			legend: {
 				display: false
+			},
+			elements: {
+				point: {
+					radius: 1
+				}
 			},
 			annotation: {
 				events: [],
@@ -577,6 +592,23 @@ scout.pct = {
 		console.log("perMins", perMins);
 
 		var median = [];
+		var pct25 = [];
+		var pct10 = [];
+		function percentile(arr, p) {
+			if (arr.length === 0) return 0;
+			if (typeof p !== 'number') throw new TypeError('p must be a number');
+			if (p <= 0) return arr[0];
+			if (p >= 1) return arr[arr.length - 1];
+
+			var index = arr.length * p,
+			    lower = Math.floor(index),
+			    upper = lower + 1,
+			    weight = index % 1;
+
+			if (upper >= arr.length) return arr[lower];
+			return arr[lower] * (1 - weight) + arr[upper] * weight;
+		}
+
 		for (var i=0; i<perMins.length; i++) {
 			var sgvObjs = perMins[i];
 			var rawSgvs = [];
@@ -589,15 +621,24 @@ scout.pct = {
 			} else {
 				median[i] = rawSgvs[(rawSgvs.length-1)/2];
 			}
+			pct25[i] = percentile(rawSgvs, 0.25);
+			pct10[i] = percentile(rawSgvs, 0.10);
+
 		}
 		console.log("median", median);
-		return {"median": median};
+		return {
+			"median": median,
+			"pct25": pct25,
+			"pct10": pct10
+		};
 
 	},
 
 	render: function(chart, chartData) {
 		console.log(chartData);
 		var median = chartData["median"];
+		var pct25 = chartData["pct25"];
+		var pct10 = chartData["pct10"];
 		var stDay = moment().startOf('day');
 		{
 			// median
@@ -611,6 +652,55 @@ scout.pct = {
 				});
 			}
 		}
+		{
+			// 25-low
+			var dataset = chart.config.data.datasets[1];
+			dataset.data = [];
+			for (var i=0; i<pct25.length; i++) {
+				var date = stDay.clone().add({minutes: i*15});
+				dataset.data.push({
+					x: date,
+					y: pct25[i]
+				});
+			}
+		}
+		{
+			// 25-hi
+			var dataset = chart.config.data.datasets[2];
+			dataset.data = [];
+			for (var i=0; i<pct25.length; i++) {
+				var date = stDay.clone().add({minutes: i*15});
+				dataset.data.push({
+					x: date,
+					y: 2*median[i] - pct25[i]
+				});
+			}
+		}
+		{
+			// 10-low
+			var dataset = chart.config.data.datasets[3];
+			dataset.data = [];
+			for (var i=0; i<pct10.length; i++) {
+				var date = stDay.clone().add({minutes: i*15});
+				dataset.data.push({
+					x: date,
+					y: pct10[i]
+				});
+			}
+		}
+		{
+			// 10-hi
+			var dataset = chart.config.data.datasets[4];
+			dataset.data = [];
+			for (var i=0; i<pct10.length; i++) {
+				var date = stDay.clone().add({minutes: i*15});
+				dataset.data.push({
+					x: date,
+					y: 2*median[i] - pct10[i]
+				});
+			}
+		}
+
 		chart.update();
 	},
 
