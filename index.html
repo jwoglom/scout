@@ -28,7 +28,7 @@
 
 				<a href="#overview" class="mdl-layout__tab is-active">Overview</a>
 				<a onclick="scout.inRange.init()" href="#in_range" class="mdl-layout__tab">In Range</a>
-				<a href="#features" class="mdl-layout__tab">Hourly</a>
+				<a onclick="scout.hourlyPct.init()" href="#hourly_pct" class="mdl-layout__tab">Percentile</a>
 			</div>
 		</header>
 		<main class="mdl-layout__content">
@@ -120,6 +120,41 @@
 								<h4>{header_date}</h4>
 								{stats}
 								<canvas id="in_range_sgv_canvas_{id}" height=50></canvas>
+							</div>
+							
+						</div>
+	          		</section>
+	          	</script>
+			</div>
+			<div class="mdl-layout__tab-panel" id="hourly_pct">
+				<section class="hourly_pct_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+						<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+							<div class="mdl-card__supporting-text">
+								<form onsubmit="return false" id="hourly_pct_form">
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="hourly_pct_start" placeholder="">
+									    <label class="mdl-textfield__label" for="hourly_pct_start">Start Date</label>
+									</div>
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="hourly_pct_end" placeholder="">
+									    <label class="mdl-textfield__label" for="hourly_pct_end">End Date</label>
+									</div>
+									<br />
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.hourlyPct.submitForm()">
+										View
+									</button>
+								</form>
+							</div>
+						</div>
+						
+	          		</section>
+				<script type="text/template" id="hourly_pct_tpl">
+					<section class="in_range_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="hourly_pct_section_{id}">
+						<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+							<div class="mdl-card__supporting-text">
+								<h4>{header_date}</h4>
+								{stats}
+								<canvas id="hourly_pct_canvas_{id}" height=100></canvas>
 							</div>
 							
 						</div>

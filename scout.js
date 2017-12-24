@@ -219,6 +219,118 @@ scout.chartConf = {
 		},
 	},
 
+	pct: {
+		type: 'line',
+		data: {
+			labels: [// date
+			],
+			datasets: [{
+				label: "Median",
+				backgroundColor: 'rgba(0, 255, 0, 0.5)',
+				borderColor: 'rgb(0, 255, 0)',
+				fill: false,
+				data: []
+			}, {
+				label: "25-75%",
+				backgroundColor: 'rgba(0, 0, 255, 0.5)',
+				borderColor: 'rgb(0, 0, 255)',
+				fill: false,
+				data: []
+			}, {
+				label: "10-90%",
+				backgroundColor: 'rgba(255, 0, 0, 0.5)',
+				borderColor: 'rgb(255, 0, 0)',
+				fill: false,
+				data: []
+			}]
+		},
+		options: {
+			// custom
+			usePointBackgroundColor: true,
+
+			responsive: true,
+	        title: {
+	            text: "Glucose"
+	        },
+			scales: {
+				xAxes: [{
+					type: "time",
+					time: {
+						format: scout.config.timeFormat,
+						//unit: 'hour',
+						//unitStepSize: 4,
+						displayFormats: {
+							'minute': 'hh:mm a',
+							'hour': 'hh:mm a',
+							'day': 'MMM D'
+						},
+						// round: 'day'
+						tooltipFormat: 'MMM D hh:mm a'
+					},
+					scaleLabel: {
+						display: false,
+						labelString: 'Date'
+					}
+				}, ],
+				yAxes: [{
+					scaleLabel: {
+						display: false,
+						labelString: 'mg/dL'
+					},
+					ticks: {
+						suggestedMin: 40,
+						suggestedMax: 280,
+						stepSize: 40
+
+					}
+				}],
+			},
+			legend: {
+				display: false
+			},
+			annotation: {
+				events: [],
+				annotations: [
+				{
+					drawTime: "beforeDatasetsDraw",
+					id: "lowRange",
+					type: "box",
+					xScaleID: "x-axis-0",
+					yScaleID: "y-axis-0",
+					yMin: 0,
+					yMax: scout.config.sgv.target_min,
+					xMin: moment("1969-12-31T23:59:59-0500"),
+					xMax: moment("2969-12-31T23:59:59-0500"),
+					backgroundColor: "rgba(255, 0, 0, 0.1)"
+				}, {
+					drawTime: "beforeDatasetsDraw",
+					id: "highRange",
+					type: "box",
+					xScaleID: "x-axis-0",
+					yScaleID: "y-axis-0",
+					yMin: scout.config.sgv.target_max,
+					yMax: 400,
+					xMin: moment("1969-12-31T23:59:59-0500"),
+					xMax: moment("2969-12-31T23:59:59-0500"),
+					backgroundColor: "rgba(255, 127, 0, 0.1)"
+				}, {
+					drawTime: "beforeDatasetsDraw",
+					id: "goodRange",
+					type: "box",
+					xScaleID: "x-axis-0",
+					yScaleID: "y-axis-0",
+					yMin: scout.config.sgv.target_min,
+					yMax: scout.config.sgv.target_max,
+					xMin: moment("1969-12-31T23:59:59-0500"),
+					xMax: moment("2969-12-31T23:59:59-0500"),
+					backgroundColor: "rgba(0, 255, 0, 0.1)",
+					borderColor: "rgba(0, 255, 0, 1)",
+					borderWidth: 2
+				}]
+			}
+		},
+	},
+
 	bg: {
 		type: 'doughnut',
 	    data: {
@@ -363,6 +475,152 @@ scout.inRange = {
 		return dict;
 	}
 };
+
+
+scout.hourlyPct = {
+	init: function() {
+		var today = moment().format("YYYY-MM-DD");
+		var lastwk = moment().subtract({days: 7}).format("YYYY-MM-DD");
+		document.querySelector("#hourly_pct_start").value = lastwk;
+		document.querySelector("#hourly_pct_end").value = today;
+
+	},
+
+	submitForm: function() {
+		var date1 = moment(document.querySelector("#hourly_pct_start").value);
+		var date2 = moment(document.querySelector("#hourly_pct_end").value);
+		scout.hourlyPct.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format());
+	},
+
+	addRange: function(st_date, end_date) {
+		scout.fetch.range(st_date, end_date, function(data) {
+			scout.hourlyPct.embedSingle(data, [st_date, end_date]);
+		});
+	},
+
+	embedSingle: function(data, dates) {
+		console.debug("embed data", data);
+		var outer = document.querySelector("#hourly_pct");
+		var tpl = document.querySelector("script#hourly_pct_tpl");
+		var id = Math.random().toString(36).substring(2);
+		var html = tpl.innerHTML
+			.replace(/\{id\}/g, id)
+			.replace(/\{date\}/g, dates.join("--"));
+		var dict = scout.hourlyPct.dataDict(data, id, dates);
+		for (var key in dict) {
+			html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+		}
+		var newDiv = document.createElement("div");
+		newDiv.innerHTML = html;
+		outer.appendChild(newDiv.children[0]);
+		//scout.sgv.load("hourly_pct_canvas_"+id, data, {tooltips: true, thinLines: true});
+		scout.pct.load("hourly_pct_canvas_"+id, data);
+	},
+
+	dataDict: function(data, id, dates) {
+		var dict = {};
+		var chartData = scout.bg.genChartData(data);
+
+		if (dates.length == 1) {
+			dict['header_date'] = moment(dates[0]).format("MMMM Do, YYYY");
+		} else {
+			dict['header_date'] = moment(dates[0]).format("MMMM Do")+" - "+moment(dates[1]).format("MMMM Do, YYYY");
+		}
+
+		var inRangePct = chartData.inRange[2]/chartData.bgCount
+		var avgBg = chartData.bgSum/chartData.bgCount
+
+		var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
+					"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)<br>"+
+					"Total entries: "+chartData.bgCount;
+		dict['stats'] = stats;
+
+		return dict;
+	}
+};
+
+scout.pct = {
+	init: function(canvasId) {
+		var pctCtx = document.getElementById(canvasId).getContext("2d");
+		// todo: deep copy?
+		var pctConf = scout.chartConf.pct;
+		return new Chart(pctCtx, pctConf);
+	},
+
+	genChartData: function(data) {
+		var min_split = 15;
+		var dFmt = "YYYY-MM-DD";
+		var perDay = {}
+		var dayi = 0;
+		for (var i=0; i<data.length; i++) {
+			var day = moment(data[i]["date"]).format(dFmt);
+			if ( Object.keys(perDay).indexOf(day) != -1) {
+				perDay[day].push(data[i]);
+			} else {
+				perDay[day] = [data[i]];
+			}
+		}
+		console.log("perDay", perDay);
+		var perMins = [];
+		for (var i=0; i<Object.keys(perDay).length; i++) {
+			var day = perDay[Object.keys(perDay)[i]];
+			for (var j=0; j<day.length; j++) {
+				var dt = moment(day[j]['date']);
+				var ms = Math.floor(dt.diff(dt.clone().startOf('day'), 'minutes')/min_split);
+				if (perMins[ms] != null) {
+					perMins[ms].push(day[j]);
+				} else {
+					perMins[ms] = [day[j]];
+				}
+			}
+		}
+		console.log("perMins", perMins);
+
+		var median = [];
+		for (var i=0; i<perMins.length; i++) {
+			var sgvObjs = perMins[i];
+			var rawSgvs = [];
+			for (var j=0; j<sgvObjs.length; j++) {
+				rawSgvs.push(sgvObjs[j]['sgv']);
+			}
+			rawSgvs.sort();
+			if (rawSgvs.length % 2 == 0) {
+				median[i] = (rawSgvs[rawSgvs.length/2 - 1] + rawSgvs[rawSgvs.length/2])/2;
+			} else {
+				median[i] = rawSgvs[(rawSgvs.length-1)/2];
+			}
+		}
+		console.log("median", median);
+		return {"median": median};
+
+	},
+
+	render: function(chart, chartData) {
+		console.log(chartData);
+		var median = chartData["median"];
+		var stDay = moment().startOf('day');
+		{
+			// median
+			var dataset = chart.config.data.datasets[0];
+			dataset.data = [];
+			for (var i=0; i<median.length; i++) {
+				var date = stDay.clone().add({minutes: i*15});
+				dataset.data.push({
+					x: date,
+					y: median[i]
+				});
+			}
+		}
+		chart.update();
+	},
+
+	load: function(canvasId, data) {
+		var chart = scout.pct.init(canvasId);
+		scout.pct.render(chart, scout.pct.genChartData(data));
+		chart.update();
+		return chart;
+	}
+}
 
 scout.bg = {
 	init: function(canvasId) {
