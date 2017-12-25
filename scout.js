@@ -12,6 +12,8 @@ var scout = {
 			target_max: 200
 		},
 		old_minutes: 8,
+		pct_split_mins: 15,
+		modifyTitle: false,
 		timeFormat: 'MM/DD/YYYY HH:mm'
 	}
 };
@@ -568,7 +570,6 @@ scout.pct = {
 	},
 
 	genChartData: function(data) {
-		var min_split = 15;
 		var dFmt = "YYYY-MM-DD";
 		var perDay = {}
 		var dayi = 0;
@@ -586,7 +587,7 @@ scout.pct = {
 			var day = perDay[Object.keys(perDay)[i]];
 			for (var j=0; j<day.length; j++) {
 				var dt = moment(day[j]['date']);
-				var ms = Math.floor(dt.diff(dt.clone().startOf('day'), 'minutes')/min_split);
+				var ms = Math.floor(dt.diff(dt.clone().startOf('day'), 'minutes')/scout.config.pct_split_mins);
 				if (perMins[ms] != null) {
 					perMins[ms].push(day[j]);
 				} else {
@@ -893,8 +894,10 @@ scout.current = {
 		document.querySelector("#current_noise").innerHTML = noise;
 
 		var title = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
-		var tobj = document.querySelector("title");
-		if (tobj.innerHTML != title) tobj.innerHTML = title;
+		if (scout.config.modifyTitle) {
+			var tobj = document.querySelector("title");
+			if (tobj.innerHTML != title) tobj.innerHTML = title;
+		}
 		scout.current.updateFavicon(cur);
 		scout.current.notify(cur);
 	},
@@ -947,11 +950,11 @@ scout.current = {
 	},
 
 	shouldNotify: function(cur) {
-		return (cur['noise'] > 1 || cur['sgv'] < scout.config.sgv.target_min || cur['sgv'] > scout.config.sgv.target_max) && (cur != scout.current.nflast);
+		return (cur['noise'] > 1 || cur['sgv'] < scout.config.sgv.target_min || cur['sgv'] > scout.config.sgv.target_max) && (cur["id"] != scout.current.nflast["id"]);
 	},
 
 	nfobj: null,
-	nflast: null,
+	nflast: {"id": null},
 
 	notify: function(cur, force) {
 		if (!("Notification" in window)) return;
