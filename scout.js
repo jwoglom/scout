@@ -485,7 +485,8 @@ scout.inRange = {
 		});
 	},
 
-	embedSingle: function(data, dates) {
+	embedSingle: function(fullData, dates) {
+		var data = fullData["sgv"];
 		console.debug("embed data", data);
 		var outer = document.querySelector("#in_range");
 		var tpl = document.querySelector("script#in_range_tpl");
@@ -501,7 +502,7 @@ scout.inRange = {
 		newDiv.innerHTML = html;
 		outer.appendChild(newDiv.children[0]);
 		scout.bg.load("in_range_canvas_"+id, data);
-		scout.sgv.load("in_range_sgv_canvas_"+id, data, null, {tooltips: true, thinLines: true});
+		scout.sgv.load("in_range_sgv_canvas_"+id, fullData, null, {tooltips: true, thinLines: true});
 	},
 
 	dataDict: function(data, id, dates) {
@@ -550,7 +551,8 @@ scout.hourlyPct = {
 		});
 	},
 
-	embedSingle: function(data, dates) {
+	embedSingle: function(fullData, dates) {
+		var data = fullData["sgv"];
 		console.debug("embed data", data);
 		var outer = document.querySelector("#hourly_pct");
 		var tpl = document.querySelector("script#hourly_pct_tpl");
@@ -566,7 +568,7 @@ scout.hourlyPct = {
 		newDiv.innerHTML = html;
 		outer.appendChild(newDiv.children[0]);
 		//scout.sgv.load("hourly_pct_canvas_"+id, data, null, {tooltips: true, thinLines: true});
-		scout.pct.load("hourly_pct_canvas_"+id, data);
+		scout.pct.load("hourly_pct_canvas_"+id, fullData);
 	},
 
 	dataDict: function(data, id, dates) {
@@ -599,7 +601,8 @@ scout.pct = {
 		return new Chart(pctCtx, pctConf);
 	},
 
-	genChartData: function(data) {
+	genChartData: function(fullData) {
+		var data = fullData["sgv"];
 		var dFmt = "YYYY-MM-DD";
 		var perDay = {}
 		var dayi = 0;
@@ -760,9 +763,9 @@ scout.pct = {
 		chart.update();
 	},
 
-	load: function(canvasId, data) {
+	load: function(canvasId, fullData) {
 		var chart = scout.pct.init(canvasId);
-		scout.pct.render(chart, scout.pct.genChartData(data));
+		scout.pct.render(chart, scout.pct.genChartData(fullData));
 		chart.update();
 		return chart;
 	}
@@ -911,7 +914,7 @@ scout.sgv = {
 		var dataset = chart.config.data.datasets[2];
 		dataset.data = [];
 		var yCoord = 0;
-		
+
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
 			var pt = {
