@@ -29,6 +29,8 @@ scout.util = {
 		if (sgv < scout.config.sgv.target_min) obj.inRange[1]++;
 		else if (sgv > scout.config.sgv.target_max) obj.inRange[3]++;
 		else obj.inRange[2]++;
+		if (sgv > obj.highBg) obj.highBg = sgv;
+		if (sgv < obj.lowBg) obj.lowBg = sgv;
 	},
 
 	pctA1c: function(avg_sgv) {
@@ -127,10 +129,19 @@ scout.chartConf = {
 			labels: [// date
 			],
 			datasets: [{
-				label: "Glucose",
+				label: 'Glucose',
 				backgroundColor: 'rgba(0, 0, 0, 0.5)',
 				borderColor: 'rgb(0, 0, 0)',
 				fill: false,
+				data: []
+			}, {
+				label: 'Average',
+				fill: false,
+				pointRadius: 0,
+				borderDash: [5, 5],
+				backgroundColor: 'rgba(0, 127, 255, 0.5)',
+				borderColor: 'rgba(0, 127, 255, 0.5)',
+				type: 'line',
 				data: []
 			}]
 		},
@@ -141,6 +152,10 @@ scout.chartConf = {
 			responsive: true,
 	        title: {
 	            text: "Glucose"
+	        },
+	        tooltips: {
+	        	mode: 'index',
+	        	intersect: false
 	        },
 			scales: {
 				xAxes: [{
@@ -490,7 +505,7 @@ scout.inRange = {
 		var avgBg = chartData.bgSum/chartData.bgCount
 
 		var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
-					"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)<br>"+
+					"Average BG: "+Math.round(avgBg)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c) High: "+Math.round(chartData.highBg)+" Low: "+Math.round(chartData.lowBg)+"<br>"+
 					"Total entries: "+chartData.bgCount;
 		dict['stats'] = stats;
 
@@ -750,7 +765,9 @@ scout.bg = {
 		var dat = {
 			inRange: [0, 0, 0, 0],
 			bgSum: 0,
-			bgCount: 0
+			bgCount: 0,
+			highBg: data.length>0 ? data[0]['sgv'] : 0,
+			lowBg: data.length>0 ? data[0]['sgv'] : 0,
 		};
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
@@ -799,7 +816,7 @@ scout.sgv = {
 		var sgvConf = Object.assign({}, scout.chartConf.sgv);
 
 		if (extraConf) {
-			sgvConf['options']['tooltips'] = {enabled: extraConf['tooltips']};
+			sgvConf['options']['tooltips']['enabled'] = extraConf['tooltips'];
 			sgvConf['options']['usePointBackgroundColor'] = extraConf['usePointBackgroundColor'];
 			if (extraConf['thinLines']) {
 				sgvConf['data']['datasets'][0]['borderWidth'] = 2;
@@ -838,9 +855,9 @@ scout.sgv = {
 			scout.current.loadSgv();
 		}
 		console.log(data);
-		var ldata = [];
 		var dataset = chart.config.data.datasets[0];
 		dataset.data = [];
+		var sum = 0;
 		if (chart.options.usePointBackgroundColor) dataset.pointBackgroundColor = [];
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
@@ -848,12 +865,21 @@ scout.sgv = {
 				x: moment(obj['dateString']),
 				y: obj['sgv']
 			});
+			sum += obj['sgv'];
 			if (chart.options.usePointBackgroundColor) {
 				dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
 			}
 		}
-		
-		console.log(ldata);
+		var avg = Math.round(sum/dataset.data.length);
+		console.log("AVG", avg);
+		var avgset = chart.config.data.datasets[1];
+		avgset['data'] = [];
+		for (var i=0; i<dataset.data.length; i++) {
+			avgset['data'].push({
+				x: dataset.data[i]['x'],
+				y: avg
+			});
+		}
 		chart.update();
 	},
 
