@@ -119,6 +119,10 @@ scout.util = {
 		var df = moment.duration(moment().diff(date));
 		if (df.asMinutes() < 60) return Math.round(df.asMinutes())+"m";
 		return parseInt(df.asHours())+"h";
+	},
+
+	convertTrDate: function(sgvDate) {
+		return (""+sgvDate).replace(/T/, " ");
 	}
 };
 
@@ -143,6 +147,12 @@ scout.chartConf = {
 				borderColor: 'rgba(0, 127, 255, 0.5)',
 				type: 'line',
 				data: []
+			}, {
+				label: 'Bolus',
+				fill: false,
+				backgroundColor: 'rgba(255, 0, 0, 0.5)',
+				borderColor: 'rgba(255, 0, 0, 0.5)',
+				type: 'bubble'
 			}]
 		},
 		options: {
@@ -491,7 +501,7 @@ scout.inRange = {
 		newDiv.innerHTML = html;
 		outer.appendChild(newDiv.children[0]);
 		scout.bg.load("in_range_canvas_"+id, data);
-		scout.sgv.load("in_range_sgv_canvas_"+id, data, {tooltips: true, thinLines: true});
+		scout.sgv.load("in_range_sgv_canvas_"+id, data, null, {tooltips: true, thinLines: true});
 	},
 
 	dataDict: function(data, id, dates) {
@@ -555,7 +565,7 @@ scout.hourlyPct = {
 		var newDiv = document.createElement("div");
 		newDiv.innerHTML = html;
 		outer.appendChild(newDiv.children[0]);
-		//scout.sgv.load("hourly_pct_canvas_"+id, data, {tooltips: true, thinLines: true});
+		//scout.sgv.load("hourly_pct_canvas_"+id, data, null, {tooltips: true, thinLines: true});
 		scout.pct.load("hourly_pct_canvas_"+id, data);
 	},
 
@@ -850,10 +860,16 @@ scout.sgv = {
 	},
 
 	primaryCallback: function(data) {
-		return scout.sgv.callback(scout.chart.sgv, data);
+		scout.sgv.callback(scout.chart.sgv, data);
 	},
 
 	callback: function(chart, data) {
+		scout.sgv.sgvCallback(chart, data);
+		scout.sgv.trCallback(chart, data);
+	},
+
+	sgvCallback: function(chart, fullData) {
+		var data = fullData["sgv"];
 		if (chart === scout.chart.sgv) {
 			console.log("isSGVchart");
 			scout.current.currentEntry = data[0];
@@ -888,10 +904,32 @@ scout.sgv = {
 		chart.update();
 	},
 
+	trCallback: function(chart, fullData) {
+		console.log("trCallback", fullData);
+		var data = fullData["tr"];
+		var sgvData = fullData["sgv"];
+		var dataset = chart.config.data.datasets[2];
+		dataset.data = [];
+		var yCoord = 0;
+		
+		for (var i=0; i<data.length; i++) {
+			var obj = data[i];
+			var pt = {
+				x: moment(obj['created_at']),
+				y: yCoord,
+				r: obj['insulin']
+			};
+			console.log("bolus", obj['created_at'], pt);
+			dataset.data.push(pt);
+		}
+		chart.update();
+	},
 
-	load: function(canvasId, data, extraConf) {
+
+	load: function(canvasId, data, bolusData, extraConf) {
 		var chart = scout.sgv.init(canvasId, extraConf);
 		scout.sgv.callback(chart, data);
+		if (bolusData) scout.sgv.bolusCallback(chart, bolusData, data);
 		chart.update();
 		return chart;
 	}
@@ -1023,20 +1061,38 @@ scout.current = {
 	}
 };
 
-scout.fetch = function(args, cb) {
-	superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+args, function(resp) {
+scout.sgvfetch = function(args, cb) {
+	var parsed = "";
+	if (args.count) parsed += "&count="+args.count;
+	if (args.date) {
+		if (args.date.gte) parsed += "&find[dateString][$gte]=" + args.date.gte;
+		if (args.date.lte) parsed += "&find[dateString][$lte]=" + args.date.lte;
+	}
+	superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		cb(data);
 
 	});
 }
 
+scout.fetch = function(args, cb) {
+	scout.sgvfetch(args, function(sgv) {
+		scout.trfetch(args, function(tr) {
+			cb({
+				"sgv": sgv,
+				"tr": tr
+			});
+		});
+	});
+}
+
 scout.fetch.gte = function(fmt, cb) {
-	return scout.fetch("find[dateString][$gte]="+fmt+"&count=99999", cb);
+	return scout.fetch({date: {"gte": fmt}, count: 99999}, cb);
 }
 
 scout.fetch.range = function(st, end, cb) {
-	return scout.fetch("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999", cb);
+	// "find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999
+	return scout.fetch({"date": {"gte": st, "lte": end}, "count": 99999}, cb);
 }
 
 scout.fetch.eq = function(fmt, cb) {
@@ -1068,7 +1124,13 @@ scout.device = {
 	},
 
 	fetchSensorStart: function(cb) {
-		scout.trfetch("count=1&find[created_at][$gte]=2017&find[eventType]=Sensor+Start", cb);
+		scout.trfetch({
+			eventType: "Sensor Start",
+			date: {
+				gte: 2017
+			},
+			count: 1
+		}, cb);
 	},
 
 	update: function() {
@@ -1079,8 +1141,9 @@ scout.device = {
 			document.querySelector("#device_name").innerHTML = latest["device"];
 		});
 
-		scout.device.fetchSensorStart(function(data) {
-			var latest = data[0];
+		scout.device.fetchSensorStart(function(trData) {
+			console.log("sensor", trData);
+			var latest = trData[0];
 			console.log("sensorStart", latest);
 			document.querySelector("#cgm_sensor_age").innerHTML = moment(latest["created_at"]).fromNow();
 		});
@@ -1088,7 +1151,15 @@ scout.device = {
 };
 
 scout.trfetch = function(args, cb) {
-	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+args, function(resp) {
+	var parsed = "";
+	if (args.count) parsed += "&count="+args.count;
+	if (args.date) {
+		if (args.date.gte) parsed += "&find[created_at][$gte]=" + scout.util.convertTrDate(args.date.gte);
+		if (args.date.lte) parsed += "&find[created_at][$lte]=" + scout.util.convertTrDate(args.date.lte);
+	}
+	if (args.eventType) parsed += "&find[eventType]=" + escape(args.eventType);
+	console.log("trfetch", args, parsed);
+	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		cb(data);
 
@@ -1096,27 +1167,29 @@ scout.trfetch = function(args, cb) {
 };
 
 scout.trfetch.bolus = function(args, cb) {
-	return scout.trfetch("find[eventType]=Meal+Bolus&"+args, cb);
+	args["eventType"] = "Meal Bolus";
+	return scout.trfetch(args, cb);
 }
 
 scout.trfetch.bolus.gte = function(fmt, cb) {
-	return scout.trfetch.bolus("find[dateString][$gte]="+fmt+"&count=99999", cb);
+	return scout.trfetch.bolus({date: {"gte": fmt}, count: 99999}, cb);
 }
 
 scout.trfetch.bolus.range = function(st, end, cb) {
-	return scout.trfetch.bolus("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999", cb);
+	return scout.trfetch.bolus({date: {"gte": st, "lte": end}, count: 99999}, cb);
 }
 
 scout.trfetch.bgcheck = function(args, cb) {
-	return scout.trfetch("find[eventType]=BG+Check&"+args, cb);
+	args["eventType"] = "BG Check";
+	return scout.trfetch(args, cb);
 }
 
 scout.trfetch.bgcheck.gte = function(fmt, cb) {
-	return scout.trfetch.bgcheck("find[dateString][$gte]="+fmt+"&count=99999", cb);
+	return scout.trfetch.bgcheck({date: {"gte": fmt}, count: 99999}, cb);
 }
 
 scout.trfetch.bgcheck.range = function(st, end, cb) {
-	return scout.trfetch.bgcheck("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999", cb);
+	return scout.trfetch.bgcheck({date: {"gte": st, "lte": end}, count: 99999}, cb);
 }
 
 Chart.defaults.global.animation.duration = 250;
