@@ -280,10 +280,13 @@ scout.chartConf = {
 			}]
 		},
 		options: {
-
 			responsive: true,
 	        title: {
 	            text: "Glucose"
+	        },
+	        tooltips: {
+	        	mode: 'index',
+	        	intersect: false
 	        },
 			scales: {
 				xAxes: [{
@@ -679,7 +682,7 @@ scout.pct = {
 				var date = stDay.clone().add({minutes: i*15});
 				dataset.data.push({
 					x: date,
-					y: median[i]
+					y: Math.round(median[i])
 				});
 			}
 		}
@@ -691,7 +694,7 @@ scout.pct = {
 				var date = stDay.clone().add({minutes: i*15});
 				dataset.data.push({
 					x: date,
-					y: avg[i]
+					y: Math.round(avg[i])
 				});
 			}
 		}
@@ -703,7 +706,7 @@ scout.pct = {
 				var date = stDay.clone().add({minutes: i*15});
 				dataset.data.push({
 					x: date,
-					y: pct25[i]
+					y: Math.round(pct25[i])
 				});
 			}
 		}
@@ -715,7 +718,7 @@ scout.pct = {
 				var date = stDay.clone().add({minutes: i*15});
 				dataset.data.push({
 					x: date,
-					y: 2*median[i] - pct25[i]
+					y: Math.round(2*median[i] - pct25[i])
 				});
 			}
 		}
@@ -727,7 +730,7 @@ scout.pct = {
 				var date = stDay.clone().add({minutes: i*15});
 				dataset.data.push({
 					x: date,
-					y: pct10[i]
+					y: Math.round(pct10[i])
 				});
 			}
 		}
@@ -739,7 +742,7 @@ scout.pct = {
 				var date = stDay.clone().add({minutes: i*15});
 				dataset.data.push({
 					x: date,
-					y: 2*median[i] - pct10[i]
+					y: Math.round(2*median[i] - pct10[i])
 				});
 			}
 		}
