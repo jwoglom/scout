@@ -1067,17 +1067,9 @@ scout.device = {
 		});
 	},
 
-	fetchTreatments: function(args, cb) {
-		superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments + "?" + args, function(resp) {
-			var data = JSON.parse(resp.text);
-			cb(data);
-		});
-	},
-
 	fetchSensorStart: function(cb) {
-		scout.device.fetchTreatments("count=1&find[created_at][$gte]=2017&find[eventType]=Sensor+Start", cb);
+		scout.trfetch("count=1&find[created_at][$gte]=2017&find[eventType]=Sensor+Start", cb);
 	},
-
 
 	update: function() {
 		scout.device.fetchStatus(function(data) {
@@ -1094,6 +1086,38 @@ scout.device = {
 		});
 	}
 };
+
+scout.trfetch = function(args, cb) {
+	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+args, function(resp) {
+		var data = JSON.parse(resp.text);
+		cb(data);
+
+	});
+};
+
+scout.trfetch.bolus = function(args, cb) {
+	return scout.trfetch("find[eventType]=Meal+Bolus&"+args, cb);
+}
+
+scout.trfetch.bolus.gte = function(fmt, cb) {
+	return scout.trfetch.bolus("find[dateString][$gte]="+fmt+"&count=99999", cb);
+}
+
+scout.trfetch.bolus.range = function(st, end, cb) {
+	return scout.trfetch.bolus("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999", cb);
+}
+
+scout.trfetch.bgcheck = function(args, cb) {
+	return scout.trfetch("find[eventType]=BG+Check&"+args, cb);
+}
+
+scout.trfetch.bgcheck.gte = function(fmt, cb) {
+	return scout.trfetch.bgcheck("find[dateString][$gte]="+fmt+"&count=99999", cb);
+}
+
+scout.trfetch.bgcheck.range = function(st, end, cb) {
+	return scout.trfetch.bgcheck("find[dateString][$gte]="+st+"&find[dateString][$lte]="+end+"&count=99999", cb);
+}
 
 Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({
