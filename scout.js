@@ -504,10 +504,12 @@ scout.inRange = {
 		var inRangePct = chartData.inRange[2]/chartData.bgCount
 		var avgBg = chartData.bgSum/chartData.bgCount
 
-		var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
-					"Average BG: "+Math.round(avgBg)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c) High: "+Math.round(chartData.highBg)+" Low: "+Math.round(chartData.lowBg)+"<br>"+
-					"Total entries: "+chartData.bgCount;
-		dict['stats'] = stats;
+		dict['in_range_pct'] = "In range: "+scout.util.round(inRangePct, 4)*100+"%";
+		dict['avg_bg'] = "Average BG: "+Math.round(avgBg);
+		dict['avg_a1c'] = scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c";
+		dict['high_bg'] = "High: "+Math.round(chartData.highBg);
+		dict['low_bg'] = "Low: "+Math.round(chartData.lowBg);
+		dict['total_num'] = "Total entries: "+chartData.bgCount;
 
 		return dict;
 	}

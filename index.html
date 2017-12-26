@@ -118,7 +118,16 @@
 						<div class="mdl-card mdl-cell mdl-cell--9-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
 							<div class="mdl-card__supporting-text">
 								<h4>{header_date}</h4>
-								{stats}
+								<table class="in_range_stats">
+									<tr>
+										<td>{total_num}</td>
+										<td>{in_range_pct}</td>
+										<td>{avg_bg}</td>
+										<td>{avg_a1c}</td>
+										<td>{high_bg}</td>
+										<td>{low_bg}</td>
+									</tr>
+								</table>
 								<canvas id="in_range_sgv_canvas_{id}" height=80></canvas>
 							</div>
 							
@@ -448,6 +457,15 @@
 
  #in_range .in_range_section .mdl-card__supporting-text {
  	margin: 0 20px;
+ }
+
+ #in_range table.in_range_stats {
+ 	width: 100%;
+ }
+
+ #in_range table.in_range_stats td {
+ 	width: 16.66%;
+ 	text-align: left;
  }
 
  #device_battery:after {
