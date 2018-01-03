@@ -118,7 +118,14 @@ scout.util = {
 	getShortTimeDiff: function(date) {
 		var df = moment.duration(moment().diff(date));
 		if (df.asMinutes() < 60) return Math.round(df.asMinutes())+"m";
+		if (df.asHours() < 10) return parseInt(df.asHours())+"h"+scout.util.zeroPad(df.asMinutes()%60);
 		return parseInt(df.asHours())+"h";
+	},
+	
+	zeroPad: function(digit) {
+		var d = parseInt(digit);
+		if (d < 10) return "0"+d;
+		return d;
 	},
 
 	convertTrDate: function(sgvDate) {
