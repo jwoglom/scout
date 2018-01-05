@@ -121,7 +121,7 @@ scout.util = {
 		if (df.asHours() < 10) return parseInt(df.asHours())+"h"+scout.util.zeroPad(df.asMinutes()%60);
 		return parseInt(df.asHours())+"h";
 	},
-	
+
 	zeroPad: function(digit) {
 		var d = parseInt(digit);
 		if (d < 10) return "0"+d;
@@ -1135,7 +1135,7 @@ scout.device = {
 
 	fetchSensorStart: function(cb) {
 		scout.trfetch({
-			eventType: "Sensor Start",
+			eventType: "Sensor+Start",
 			date: {
 				gte: 2017
 			},
