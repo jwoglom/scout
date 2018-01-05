@@ -153,7 +153,8 @@ scout.chartConf = {
 				backgroundColor: 'rgba(0, 127, 255, 0.5)',
 				borderColor: 'rgba(0, 127, 255, 0.5)',
 				type: 'line',
-				data: []
+				data: [],
+				tooltips: false
 			}, {
 				label: 'Bolus',
 				fill: false,
