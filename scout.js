@@ -929,8 +929,10 @@ scout.sgv = {
 				y: yCoord,
 				r: obj['insulin']
 			};
-			console.log("bolus", obj['created_at'], pt);
-			dataset.data.push(pt);
+			if (pt['r']) {
+				console.log("bolus", obj['created_at'], pt);
+				dataset.data.push(pt);
+			} else console.debug("skipped non-bolus", obj['created_at'], pt);
 		}
 		chart.update();
 	},
