@@ -173,10 +173,8 @@
 			</div>
 			<div class="mdl-layout__tab-panel" id="sensor_age">
 				<section class="sensor_age_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-					<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-						<div class="mdl-card__supporting-text">
-							<canvas id="sageBarCanvas"></canvas>
-						</div>
+					<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+						<canvas id="sageBarCanvas"></canvas>
 					</div>
 	          	</section>
 			</div>
@@ -484,6 +482,10 @@
 
  #device_name {
  	font-size: 14px;
+ }
+
+ .sensor_age_section canvas {
+ 	height: 300px;
  }
 
 </style>

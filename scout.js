@@ -481,14 +481,18 @@ scout.chartConf = {
 
 	        tooltips: {
 	        	mode: 'index',
-	        	intersect: false
+	        	intersect: false,
+	        	callbacks: {
+	        		label: function(tooltipItem, data) {
+	        			return parseInt(tooltipItem.yLabel)+" days ("+parseInt(tooltipItem.yLabel*24)+" hours)";
+	        		}
+	        	}
 	        },
 
 			scales: {
 				xAxes: [{
 					type: 'time',
 					time: {
-						
 						unit: 'day',
 						//unitStepSize: 4,
 						displayFormats: {
@@ -496,7 +500,6 @@ scout.chartConf = {
 							'hour': 'hh:mm a',
 							'day': 'MMM D'
 						},
-						round: 'day',
 						tooltipFormat: 'MMM D hh:mm a'
 					},
 					scaleLabel: {
@@ -506,8 +509,8 @@ scout.chartConf = {
 				}],
 				yAxes: [{
 					scaleLabel: {
-						display: false,
-						labelString: 'hours'
+						display: true,
+						labelString: 'days'
 					},
 					ticks: {
 						suggestedMin: 0,
@@ -1298,12 +1301,12 @@ scout.sab = {
 			if (i-1 != times.length) {
 				nxt = times[i+1];
 			}
-			var diff = moment.duration(moment(nxt).diff(times[i])).asDays();
+			var diff = moment.duration(moment(nxt).diff(times[i]));
 			dataset.data.push({
 				x: times[i],
-				y: diff
+				y: diff.asDays()
 			});
-			dataset.backgroundColor.push(scout.util.sensorAgeColor(24*diff));
+			dataset.backgroundColor.push(scout.util.sensorAgeColor(diff.asHours()));
 		}
 
 	},
