@@ -130,6 +130,12 @@ scout.util = {
 
 	convertTrDate: function(sgvDate) {
 		return (""+sgvDate).replace(/T/, " ");
+	},
+
+	sensorAgeColor: function(hrs) {
+		if (hrs < 6*24) return 'rgba(255,0,0,0.5)';
+		if (hrs > 8*24) return 'rgba(0,0,255,0.5)';
+		return 'rgba(0,255,0,0.5)';
 	}
 };
 
@@ -451,6 +457,64 @@ scout.chartConf = {
 				}]
 			}
 	    }
+	},
+
+	sab: {
+		type: 'bar',
+		data: {
+			datasets: [{
+				label: 'Sensor time',
+				backgroundColor: [],
+				data: []
+			}]
+		},
+
+		options: {
+			responsive: true,
+			legend: {
+				display: false
+			},
+
+			title: {
+				display: false
+			},
+
+	        tooltips: {
+	        	mode: 'index',
+	        	intersect: false
+	        },
+
+			scales: {
+				xAxes: [{
+					type: 'time',
+					time: {
+						
+						unit: 'day',
+						//unitStepSize: 4,
+						displayFormats: {
+							'minute': 'hh:mm a',
+							'hour': 'hh:mm a',
+							'day': 'MMM D'
+						},
+						round: 'day',
+						tooltipFormat: 'MMM D hh:mm a'
+					},
+					scaleLabel: {
+						display: false,
+						labelString: 'Date'
+					}
+				}],
+				yAxes: [{
+					scaleLabel: {
+						display: false,
+						labelString: 'hours'
+					},
+					ticks: {
+						suggestedMin: 0,
+					}
+				}]
+			}
+		}
 	}
 };
 
@@ -610,6 +674,8 @@ scout.pct = {
 	},
 
 	genChartData: function(fullData) {
+		// TODO: redo these calculations; there's something fishy
+		// with the data that gets put on the graph, it looks off.
 		var data = fullData["sgv"];
 		var dFmt = "YYYY-MM-DD";
 		var perDay = {}
@@ -1203,6 +1269,69 @@ scout.trfetch.bgcheck.gte = function(fmt, cb) {
 
 scout.trfetch.bgcheck.range = function(st, end, cb) {
 	return scout.trfetch.bgcheck({date: {"gte": st, "lte": end}, count: 99999}, cb);
+}
+
+// Sensor Age Bar chart
+scout.sab = {
+	init: function(canvasId, extraConf) {
+		var sabCtx = document.getElementById(canvasId).getContext("2d");
+		// single-layer copy. can't use full deep copy due to moment()
+		var sabConf = Object.assign({}, scout.chartConf.sab);
+
+		// hack for deep copy of data fields.
+		sabConf.data = JSON.parse(JSON.stringify(scout.chartConf.sab.data));
+		return new Chart(sabCtx, sabConf);
+	},
+
+	callback: function(chart, data) {
+		var dataset = chart.data.datasets[0];
+		var times = [];
+		for (var i=0; i<data.length; i++) {
+			var time = data[i]['created_at'];
+			times.push(moment(time));
+		}
+
+		// oldest to newest
+		times.sort(function(a, b) { return a-b; });
+		for (var i=0; i<times.length; i++) {
+			var nxt = new Date();
+			if (i-1 != times.length) {
+				nxt = times[i+1];
+			}
+			var diff = moment.duration(moment(nxt).diff(times[i])).asDays();
+			dataset.data.push({
+				x: times[i],
+				y: diff
+			});
+			dataset.backgroundColor.push(scout.util.sensorAgeColor(24*diff));
+		}
+
+	},
+
+	load: function(canvasId, data, extraConf) {
+		var chart = scout.sab.init(canvasId, extraConf);
+		scout.sab.callback(chart, data);
+		chart.update();
+		return chart;
+	}
+
+
+}
+
+scout.sensorAge = {
+	init: function() {
+		scout.trfetch({
+			count: 9999,
+			eventType: "Sensor Start",
+			date: {
+				gte: 2017
+			}
+		}, function(data) {
+			scout.sab.load("sageBarCanvas", data);
+		});
+
+
+	}
 }
 
 Chart.defaults.global.animation.duration = 250;

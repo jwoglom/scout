@@ -29,6 +29,7 @@
 				<a href="#overview" class="mdl-layout__tab is-active">Overview</a>
 				<a onclick="scout.inRange.init()" href="#in_range" class="mdl-layout__tab">In Range</a>
 				<a onclick="scout.hourlyPct.init()" href="#hourly_pct" class="mdl-layout__tab">Percentile</a>
+				<a onclick="scout.sensorAge.init()" href="#sensor_age" class="mdl-layout__tab">Sensor Age</a>
 			</div>
 		</header>
 		<main class="mdl-layout__content">
@@ -169,6 +170,15 @@
 						</div>
 	          		</section>
 	          	</script>
+			</div>
+			<div class="mdl-layout__tab-panel" id="sensor_age">
+				<section class="sensor_age_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+					<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+						<div class="mdl-card__supporting-text">
+							<canvas id="sageBarCanvas"></canvas>
+						</div>
+					</div>
+	          	</section>
 			</div>
 		</main>
 	</div>
