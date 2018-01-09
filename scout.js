@@ -136,6 +136,20 @@ scout.util = {
 		if (hrs < 6*24) return 'rgba(255,0,0,0.5)';
 		if (hrs > 8*24) return 'rgba(0,0,255,0.5)';
 		return 'rgba(0,255,0,0.5)';
+	},
+
+	fmtDuration: function(tm) {
+		var dur = moment.duration(tm);
+		var out = "";
+		if (dur.asDays() >= 1) out += parseInt(dur.asDays())+" days, ";
+		if (dur.asHours() >= 1) {
+			var hrs = parseInt(dur.asHours()%24);
+			out += hrs+" hour";
+			if (hrs != 1) out += "s";
+			out += ", ";
+		}
+		out += parseInt(dur.asMinutes()%60)+" minutes, ";
+		return out.substring(0, out.length-2);
 	}
 };
 
@@ -526,6 +540,17 @@ scout.chart = {
 	bg: null
 };
 
+scout.tpl = {
+	renderHTML: function(tplId, dict) {
+		var tpl = document.querySelector("script#" + tplId);
+		var html = tpl.innerHTML;
+		for (var key in dict) {
+			html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+		}
+		return html;
+	}
+}
+
 scout.inRange = {
 	init: function() {
 		var today = moment().format("YYYY-MM-DD");
@@ -564,15 +589,11 @@ scout.inRange = {
 		var data = fullData["sgv"];
 		console.debug("embed data", data);
 		var outer = document.querySelector("#in_range");
-		var tpl = document.querySelector("script#in_range_tpl");
 		var id = Math.random().toString(36).substring(2);
-		var html = tpl.innerHTML
-			.replace(/\{id\}/g, id)
-			.replace(/\{date\}/g, dates.join("--"));
 		var dict = scout.inRange.dataDict(data, id, dates);
-		for (var key in dict) {
-			html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
-		}
+		dict['id'] = id;
+		dict['date'] = dates.join("--");
+		var html = scout.tpl.renderHTML("in_range_tpl", dict);
 		var newDiv = document.createElement("div");
 		newDiv.innerHTML = html;
 		outer.appendChild(newDiv.children[0]);
@@ -1331,9 +1352,49 @@ scout.sensorAge = {
 			}
 		}, function(data) {
 			scout.sab.load("sageBarCanvas", data);
+			scout.sensorAge.currentStatus(data);
 		});
+	},
 
+	currentStatus: function(data) {
+		var cont = document.getElementById("sensor_age_status");
+		var data = scout.sensorAge.currentStatusData(data);
+		cont.innerHTML = scout.tpl.renderHTML("sensor_age_status_tpl", data);
+	},
 
+	currentStatusData: function(data) {
+		var latest = data[0];
+		var created = moment(latest['created_at']);
+		var avgAge = scout.sensorAge.avgAgeHours(data);
+		return {
+			"sensor_last_inserted": created.format(scout.config.timeFormat+" a"),
+			"current_sensor_age": scout.util.fmtDuration(moment().diff(created)),
+			"avg_sensor_age": scout.util.fmtDuration(moment.duration({hours: avgAge}))
+		}
+	},
+
+	avgAgeHours: function(data) {
+		var hrs = [];
+		var times = [];
+		for (var i=0; i<data.length; i++) {
+			var time = data[i]['created_at'];
+			times.push(moment(time));
+		}
+
+		// oldest to newest
+		times.sort(function(a, b) { return a-b; });
+		for (var i=0; i<times.length; i++) {
+			if (i-1 != times.length) {
+				var nxt = times[i+1];
+				var diff = moment.duration(moment(nxt).diff(times[i]));
+				hrs.push(diff.asHours());
+			}
+		}
+		var avg = 0;
+		for (var i=0; i<hrs.length; i++) {
+			avg += hrs[i];
+		}
+		return avg/hrs.length;
 	}
 }
 
