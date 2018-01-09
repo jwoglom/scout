@@ -180,7 +180,20 @@ scout.chartConf = {
 				fill: false,
 				backgroundColor: 'rgba(255, 0, 0, 0.5)',
 				borderColor: 'rgba(255, 0, 0, 0.5)',
-				type: 'bubble'
+				type: 'bubble',
+				tooltips: false,
+				datalabels: {
+					display: true,
+					backgroundColor: 'rgba(255, 0, 0, 0.5)',
+					borderRadius: 4,
+					color: 'white',
+					font: {
+						weight: 'bold'
+					},
+					align: 'start',
+					anchor: 'start'
+
+				}
 			}]
 		},
 		options: {
@@ -1011,8 +1024,7 @@ scout.sgv = {
 		var sgvData = fullData["sgv"];
 		var dataset = chart.config.data.datasets[2];
 		dataset.data = [];
-		var yCoord = 0;
-
+		var yCoord = 80;
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
 			var pt = {
@@ -1397,7 +1409,7 @@ scout.sensorAge = {
 		return avg/hrs.length;
 	}
 }
-
+Chart.defaults.global.plugins.datalabels.display = false;
 Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({
 	afterUpdate: function (chart) {
