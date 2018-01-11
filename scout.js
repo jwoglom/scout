@@ -229,7 +229,7 @@ scout.chartConf = {
 				xAxes: [{
 					type: "time",
 					time: {
-						format: scout.config.timeFormat,
+						parser: scout.config.timeFormat,
 						//unit: 'hour',
 						//unitStepSize: 4,
 						displayFormats: {
@@ -360,7 +360,7 @@ scout.chartConf = {
 				xAxes: [{
 					type: "time",
 					time: {
-						format: scout.config.timeFormat,
+						parser: scout.config.timeFormat,
 						//unit: 'hour',
 						//unitStepSize: 4,
 						displayFormats: {
