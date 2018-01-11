@@ -15,7 +15,8 @@ var scout = {
 		missed_minutes: 8,
 		pct_split_mins: 15,
 		modifyTitle: false,
-		timeFormat: 'MM/DD/YYYY HH:mm'
+		timeFormat: 'MM/DD/YYYY HH:mm',
+		favicon_alternate_ms: 5000
 	}
 };
 
@@ -1095,18 +1096,27 @@ scout.current = {
 			var tobj = document.querySelector("title");
 			if (tobj.innerHTML != title) tobj.innerHTML = title;
 		}
-		scout.current.updateFavicon(cur);
+		scout.current.updateFavicon(cur, true);
 		scout.current.notify(cur);
 	},
 
-	updateFavicon: function(cur) {
+	updateFavicon: function(cur, alternate) {
 		var link = document.querySelector("link[rel='icon']");
 		link.setAttribute('type', 'image/png');
 		link.setAttribute('href', scout.current.buildBgIcon(cur));
+		if (alternate) {
+			setTimeout(function() {
+				link.setAttribute('href', scout.current.buildBgIcon(cur, true));
+				setTimeout(function() {
+					link.setAttribute('href', scout.current.buildBgIcon(cur, false));
+				}, scout.config.favicon_alternate_ms);
+			}, scout.config.favicon_alternate_ms);
+		}
 	},
 
-	buildBgIcon: function(cur) {
+	buildBgIcon: function(cur, show_delta) {
 		var sgv = parseInt(cur['sgv']);
+		var delta = scout.util.fmtDelta(cur['delta']);
 		var arrow = scout.util.directionToThickArrow(cur['direction']);
 		var noise = scout.util.noise(cur['noise']);
 		if (noise.length > 1) arrow = noise.substring(0, 1);
@@ -1149,8 +1159,17 @@ scout.current = {
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
-				font = "bold 40px Arial";
-				fillText(arrow, 32, 30);
+				if (show_delta) {
+					font = "30px Arial";
+					if (delta.length > 4 && delta.indexOf(".") != -1) {
+						delta = delta.split(".")[0];
+					}
+					fillText(delta, 32, 30);
+					textAlign = "center";
+				} else {
+					font = "bold 40px Arial";
+					fillText(arrow, 32, 30);
+				}
 
 				font = "40px Arial";
 				fillText(sgv, 32, 63);
