@@ -11,7 +11,8 @@ var scout = {
 			target_min: 80,
 			target_max: 200
 		},
-		old_minutes: 8,
+		old_minutes: 15,
+		missed_minutes: 8,
 		pct_split_mins: 15,
 		modifyTitle: false,
 		timeFormat: 'MM/DD/YYYY HH:mm'
@@ -115,6 +116,10 @@ scout.util = {
 		return moment.duration(moment().diff(date)).asMinutes() >= scout.config.old_minutes;
 	},
 
+	isMissedData: function(date) {
+		return moment.duration(moment().diff(date)).asMinutes() >= scout.config.missed_minutes;
+	},
+
 	getShortTimeDiff: function(date) {
 		var df = moment.duration(moment().diff(date));
 		if (df.asMinutes() < 60) return Math.round(df.asMinutes())+"m";
@@ -150,6 +155,10 @@ scout.util = {
 		}
 		out += parseInt(dur.asMinutes()%60)+" minutes, ";
 		return out.substring(0, out.length-2);
+	},
+
+	fmtDelta: function(delta) {
+		return delta > 0 ? '+'+scout.util.round(delta, 1) : scout.util.round(delta, 1);
 	}
 };
 
@@ -1058,13 +1067,17 @@ scout.current = {
 
 		var sgvText = cur['sgv'];
 		var direction = scout.util.directionToArrow(cur['direction']);
-		var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
+		var delta = scout.util.fmtDelta(cur['delta']);
 		var noise = scout.util.noise(cur['noise']);
 
 		if (scout.util.isOldData(cur['date'])) {
 			direction = "old";
 			document.querySelector("#current_sgv").classList.add('old-data');
 			document.querySelector("#current_minsago").classList.add('old-data');
+		} else if (scout.util.isMissedData(cur['date'])) {
+			direction = "miss";
+			document.querySelector("#current_sgv").classList.add('missed-data');
+			document.querySelector("#current_minsago").classList.add('missed-data');
 		} else {
 			document.querySelector("#current_sgv").classList.remove('old-data');
 			document.querySelector("#current_minsago").classList.remove('old-data');
@@ -1099,7 +1112,6 @@ scout.current = {
 		if (noise.length > 1) arrow = noise.substring(0, 1);
 		var canvas = document.getElementById("favicon_canvas");
 		
-		
 		with (canvas.getContext("2d")) {
 			clearRect(0, 0, canvas.width, canvas.height);
 			if (scout.util.isOldData(cur['date'])) {
@@ -1111,11 +1123,25 @@ scout.current = {
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
+				font = "30px Arial";
+				fillText(tdiff, 32, 30);
+
 				font = "40px Arial";
-				fillText(tline, 32, 30);
+				fillText(tline, 32, 63);
+			} else if (scout.util.isMissedData(cur['date'])) {
+				var tdiff = scout.util.getShortTimeDiff(cur['date']);
+				fillStyle = scout.util.colorForSgv(sgv);
+				fillStyle = "rgb(255,255,255)";
+				fillRect(0, 0, 64, 64);
+
+				fillStyle = "rgb(0,0,0)";
+				textAlign = "center";
 
 				font = "30px Arial";
-				fillText(tdiff, 32, 63);
+				fillText(tdiff, 32, 30);
+
+				font = "40px Arial";
+				fillText(sgv, 32, 63);
 			} else {
 				fillStyle = scout.util.colorForSgv(sgv);
 				fillRect(0, 0, 64, 64);
