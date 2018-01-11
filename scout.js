@@ -1078,17 +1078,23 @@ scout.current = {
 		var delta = scout.util.fmtDelta(cur['delta']);
 		var noise = scout.util.noise(cur['noise']);
 
+
+		var curSgv = document.querySelector("#current_sgv");
+		var curMins = document.querySelector("#current_minsago");
+
+		curSgv.classList.remove('old-data');
+		curMins.classList.remove('old-data');
+		curSgv.classList.remove('missed-data');
+		curMins.classList.remove('missed-data');
+
 		if (scout.util.isOldData(cur['date'])) {
 			direction = "old";
-			document.querySelector("#current_sgv").classList.add('old-data');
-			document.querySelector("#current_minsago").classList.add('old-data');
+			curSgv.classList.add('old-data');
+			curMins.classList.add('old-data');
 		} else if (scout.util.isMissedData(cur['date'])) {
 			direction = "miss";
-			document.querySelector("#current_sgv").classList.add('missed-data');
-			document.querySelector("#current_minsago").classList.add('missed-data');
-		} else {
-			document.querySelector("#current_sgv").classList.remove('old-data');
-			document.querySelector("#current_minsago").classList.remove('old-data');
+			curSgv.classList.add('missed-data');
+			curMins.classList.add('missed-data');
 		}
 
 		document.querySelector("#current_sgv").innerHTML = sgvText;
