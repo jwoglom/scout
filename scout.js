@@ -23,7 +23,13 @@ var scout = {
 scout.util = {
 	colorForSgv: function(sgv) {
 		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 0, 0)';
-		if (sgv > scout.config.sgv.target_max) return 'rgb(255, 0, 0)';
+		if (sgv > scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
+		return 'rgb(0, 255, 0)';
+	},
+
+	bgColorForSgv: function(sgv) {
+		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 127, 127)';
+		if (sgv > scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
 		return 'rgb(0, 255, 0)';
 	},
 
@@ -995,9 +1001,8 @@ scout.sgv = {
 	sgvCallback: function(chart, fullData) {
 		var data = fullData["sgv"];
 		if (chart === scout.chart.sgv) {
-			console.log("isSGVchart");
-			scout.current.currentEntry = data[0];
-			scout.current.loadSgv();
+			console.debug("isSGVchart");
+			scout.current.loadSgv(data[0]);
 		}
 		console.log(data);
 		var dataset = chart.config.data.datasets[0];
@@ -1062,9 +1067,11 @@ scout.sgv = {
 
 scout.current = {
 	currentEntry: null,
-	loadSgv: function() {
-		var cur = scout.current.currentEntry;
+	loadSgv: function(cur) {
 		if (!cur) return;
+		var new_data = (scout.current.currentEntry == null || scout.current.currentEntry['date'] != cur['date']);
+		if (new_data) console.log("loadSgv new data");
+		scout.current.currentEntry = cur;
 
 		var sgvText = cur['sgv'];
 		var direction = scout.util.directionToArrow(cur['direction']);
@@ -1096,7 +1103,7 @@ scout.current = {
 			var tobj = document.querySelector("title");
 			if (tobj.innerHTML != title) tobj.innerHTML = title;
 		}
-		scout.current.updateFavicon(cur, true);
+		scout.current.updateFavicon(cur, new_data);
 		scout.current.notify(cur);
 	},
 
@@ -1106,8 +1113,10 @@ scout.current = {
 		link.setAttribute('href', scout.current.buildBgIcon(cur));
 		if (alternate) {
 			setTimeout(function() {
+				console.debug("favicon tick");
 				link.setAttribute('href', scout.current.buildBgIcon(cur, true));
 				setTimeout(function() {
+					console.debug("favicon tock");
 					link.setAttribute('href', scout.current.buildBgIcon(cur, false));
 				}, scout.config.favicon_alternate_ms);
 			}, scout.config.favicon_alternate_ms);
@@ -1140,7 +1149,7 @@ scout.current = {
 				fillText(tline, 32, 63);
 			} else if (scout.util.isMissedData(cur['date'])) {
 				var tdiff = scout.util.getShortTimeDiff(cur['date']);
-				fillStyle = scout.util.colorForSgv(sgv);
+				fillStyle = scout.util.bgColorForSgv(sgv);
 				fillStyle = "rgb(255,255,255)";
 				fillRect(0, 0, 64, 64);
 
@@ -1153,7 +1162,7 @@ scout.current = {
 				font = "40px Arial";
 				fillText(sgv, 32, 63);
 			} else {
-				fillStyle = scout.util.colorForSgv(sgv);
+				fillStyle = scout.util.bgColorForSgv(sgv);
 				fillRect(0, 0, 64, 64);
 
 				fillStyle = "rgb(0,0,0)";
