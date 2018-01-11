@@ -16,7 +16,8 @@ var scout = {
 		pct_split_mins: 15,
 		modifyTitle: false,
 		timeFormat: 'MM/DD/YYYY HH:mm',
-		favicon_alternate_ms: 5000
+		favicon_alternate_ms: 5000,
+		reload_ms: 30*1000
 	}
 };
 
@@ -741,7 +742,7 @@ scout.pct = {
 				perDay[day] = [data[i]];
 			}
 		}
-		console.log("perDay", perDay);
+		console.debug("pct perDay", perDay);
 		var perMins = [];
 		for (var i=0; i<Object.keys(perDay).length; i++) {
 			var day = perDay[Object.keys(perDay)[i]];
@@ -755,7 +756,7 @@ scout.pct = {
 				}
 			}
 		}
-		console.log("perMins", perMins);
+		console.debug("pct perMins", perMins);
 
 		var median = [];
 		var avg = [];
@@ -796,8 +797,8 @@ scout.pct = {
 			avg[i] = av;
 
 		}
-		console.log("median", median);
-		console.log("avg", avg);
+		console.debug("pct median", median);
+		console.debug("pct avg", avg);
 		return {
 			"median": median,
 			"avg": avg,
@@ -808,7 +809,7 @@ scout.pct = {
 	},
 
 	render: function(chart, chartData) {
-		console.log(chartData);
+		console.debug("pct chartData", chartData);
 		var median = chartData["median"];
 		var pct25 = chartData["pct25"];
 		var pct10 = chartData["pct10"];
@@ -920,7 +921,7 @@ scout.bg = {
 			dat.bgSum += obj['sgv'];
 			dat.bgCount++;
 		}
-		console.log("chartD", dat);
+		console.debug("bg chartD", dat);
 		return dat;
 	},
 
@@ -1004,7 +1005,7 @@ scout.sgv = {
 			console.debug("isSGVchart");
 			scout.current.loadSgv(data[0]);
 		}
-		console.log(data);
+		console.log("sgvCallback data", data);
 		var dataset = chart.config.data.datasets[0];
 		dataset.data = [];
 		var sum = 0;
@@ -1021,7 +1022,7 @@ scout.sgv = {
 			}
 		}
 		var avg = Math.round(sum/dataset.data.length);
-		console.log("AVG", avg);
+		console.debug("sgv avg", avg);
 		var avgset = chart.config.data.datasets[1];
 		avgset['data'] = [];
 		for (var i=0; i<dataset.data.length; i++) {
@@ -1034,7 +1035,7 @@ scout.sgv = {
 	},
 
 	trCallback: function(chart, fullData) {
-		console.log("trCallback", fullData);
+		console.debug("trCallback", fullData);
 		var data = fullData["tr"];
 		var sgvData = fullData["sgv"];
 		var dataset = chart.config.data.datasets[2];
@@ -1048,7 +1049,7 @@ scout.sgv = {
 				r: obj['insulin']
 			};
 			if (pt['r']) {
-				console.log("bolus", obj['created_at'], pt);
+				console.debug("bolus", obj['created_at'], pt);
 				dataset.data.push(pt);
 			} else console.debug("skipped non-bolus", obj['created_at'], pt);
 		}
@@ -1078,7 +1079,6 @@ scout.current = {
 		var delta = scout.util.fmtDelta(cur['delta']);
 		var noise = scout.util.noise(cur['noise']);
 
-
 		var curSgv = document.querySelector("#current_sgv");
 		var curMins = document.querySelector("#current_minsago");
 
@@ -1097,11 +1097,11 @@ scout.current = {
 			curMins.classList.add('missed-data');
 		}
 
-		document.querySelector("#current_sgv").innerHTML = sgvText;
-		document.querySelector("#current_sgv").style.color = scout.util.colorForSgv(cur['sgv']);
+		curSgv.innerHTML = sgvText;
+		curSgv.style.color = scout.util.colorForSgv(cur['sgv']);
+		curMins.innerHTML = scout.util.minsAgo(cur['date']);
 		document.querySelector("#current_direction").innerHTML = direction;
 		document.querySelector("#current_delta").innerHTML = delta;
-		document.querySelector("#current_minsago").innerHTML = scout.util.minsAgo(cur['date']);
 		document.querySelector("#current_noise").innerHTML = noise;
 
 		var title = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
@@ -1311,15 +1311,14 @@ scout.device = {
 	update: function() {
 		scout.device.fetchStatus(function(data) {
 			var latest = data[0];
-			console.log("latest", latest);
+			console.log("latest devicestatus:", latest);
 			document.querySelector("#device_battery").innerHTML = latest["uploader"]["battery"];
 			document.querySelector("#device_name").innerHTML = latest["device"];
 		});
 
 		scout.device.fetchSensorStart(function(trData) {
-			console.log("sensor", trData);
 			var latest = trData[0];
-			console.log("sensorStart", latest);
+			console.log("latest sensorstart:", latest);
 			document.querySelector("#cgm_sensor_age").innerHTML = moment(latest["created_at"]).fromNow();
 		});
 	}
@@ -1333,7 +1332,7 @@ scout.trfetch = function(args, cb) {
 		if (args.date.lte) parsed += "&find[created_at][$lte]=" + scout.util.convertTrDate(args.date.lte);
 	}
 	if (args.eventType) parsed += "&find[eventType]=" + escape(args.eventType);
-	console.log("trfetch", args, parsed);
+	console.debug("trfetch", args, parsed);
 	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		cb(data);
@@ -1539,7 +1538,7 @@ window.onload = function() {
 	setInterval(function() {
 		console.log("reload", scout.sgv.currentLength);
 		scout.sgv.currentLength(scout.sgv.primaryCallback);
-	}, 30*1000);
+	}, scout.config.reload_ms);
 	scout.device.update();
 	
 };
