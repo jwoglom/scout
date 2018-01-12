@@ -115,9 +115,9 @@ scout.util = {
 		return [
 			'?',
 			'✓',
-			'⚠ LIGHT NOISE ⚠',
-			'⚠ MODERATE NOISE ⚠',
-			'⚠ HIGH NOISE ⚠'
+			'⚠ Light Noise',
+			'⚠ Moderate Noise',
+			'⚠ High Noise'
 		][parseInt(n)];
 	},
 
@@ -1098,6 +1098,7 @@ scout.current = {
 			direction = "old";
 			curSgv.classList.add('old-data');
 			curMins.classList.add('old-data');
+			scout.current.notifyOldData(cur);
 		} else if (scout.util.isMissedData(cur['date'])) {
 			direction = "miss";
 			curSgv.classList.add('missed-data');
@@ -1228,7 +1229,7 @@ scout.current = {
 				var noise = scout.util.noise(cur['noise']);
 
 				var text = "BG level is "+cur['sgv']+""+direction;
-				var body = "Delta: "+delta+"  Noise: "+noise;
+				var body = "Delta: "+delta+" "+noise;
 				var bgIcon = scout.current.buildBgIcon(cur);
 				var options = {
 					body: body,
@@ -1245,6 +1246,45 @@ scout.current = {
 				}
 				return scout.current.nfobj;
 			}
+		} else if (Notification.permission != "denied") {
+			console.error("Notification permission status:", Notification.permission);
+			Notification.requestPermission(function(permission) {
+				if (permission == "granted") scout.current.notify(cur);
+			});
+		} else {
+			console.error("Notification permission status:", Notification.permission);
+		}
+	},
+
+	notifyOldData: function(cur) {
+		if (!("Notification" in window)) {
+			console.error("No Notification object");
+			return;
+		}
+		if (Notification.permission == "granted") {
+			console.debug("notifyOldData", cur);
+
+			var direction = scout.util.directionToArrow(cur['direction']);
+			var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
+			var noise = scout.util.noise(cur['noise']);
+
+			var text = "Old data: " + scout.util.minsAgo(cur['date']);
+			var body = "BG: "+cur['sgv']+" Delta: "+delta+" "+noise;
+			var bgIcon = scout.current.buildBgIcon(cur);
+			var options = {
+				body: body,
+				icon: bgIcon,
+				badge: bgIcon,
+				tag: "scout-notify"
+			}
+			if (scout.current.nfobj) scout.current.nfobj.close();
+			scout.current.nfobj = new Notification(text, options);
+			scout.current.nfobj.onclick = function(event) {
+				window.focus();
+				document.body.focus();
+				this.close();
+			}
+			return scout.current.nfobj;
 		} else if (Notification.permission != "denied") {
 			console.error("Notification permission status:", Notification.permission);
 			Notification.requestPermission(function(permission) {
