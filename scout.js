@@ -1243,6 +1243,7 @@ scout.sgvfetch = function(args, cb) {
 		if (args.date.gte) parsed += "&find[dateString][$gte]=" + args.date.gte;
 		if (args.date.lte) parsed += "&find[dateString][$lte]=" + args.date.lte;
 	}
+	parsed += "&ts=" + (+new Date());
 	superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		cb(data);
@@ -1292,7 +1293,7 @@ scout.fetch.week = function(cb) {
 
 scout.device = {
 	fetchStatus: function(cb) {
-		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus, function(resp) {
+		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?ts=" + (+new Date()), function(resp) {
 			var data = JSON.parse(resp.text);
 			cb(data);
 		});
@@ -1332,6 +1333,7 @@ scout.trfetch = function(args, cb) {
 		if (args.date.lte) parsed += "&find[created_at][$lte]=" + scout.util.convertTrDate(args.date.lte);
 	}
 	if (args.eventType) parsed += "&find[eventType]=" + escape(args.eventType);
+	parsed += "&ts=" + (+new Date())
 	console.debug("trfetch", args, parsed);
 	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
