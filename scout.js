@@ -1109,6 +1109,9 @@ scout.current = {
 		curMins.innerHTML = scout.util.minsAgo(cur['date']);
 		document.querySelector("#current_direction").innerHTML = direction;
 		document.querySelector("#current_delta").innerHTML = delta;
+		if (noise.length > 2) {
+			noise += "<br />";
+		}
 		document.querySelector("#current_noise").innerHTML = noise;
 
 		var title = cur['sgv']+''+direction+' '+delta+' '+noise+' - scout';
@@ -1203,12 +1206,12 @@ scout.current = {
 			cur['noise'] > 1 || 
 			cur['sgv'] < scout.config.sgv.target_min || 
 			cur['sgv'] > scout.config.sgv.target_max ||
-			Math.abs(cur['delta']) > scout.config.sgv.spike_delta
-		) && (cur["id"] != scout.current.nflast["id"]);
+			Math.abs(cur['delta']) >= scout.config.sgv.spike_delta
+		) && (cur["_id"] != scout.current.nflast["_id"]);
 	},
 
 	nfobj: null,
-	nflast: {"id": null},
+	nflast: {"_id": null},
 
 	notify: function(cur, force) {
 		if (!("Notification" in window)) {
