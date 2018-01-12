@@ -9,7 +9,8 @@ var scout = {
 		},
 		sgv: {
 			target_min: 80,
-			target_max: 200
+			target_max: 200,
+			spike_delta: 12
 		},
 		old_minutes: 15,
 		missed_minutes: 8,
@@ -167,7 +168,13 @@ scout.util = {
 
 	fmtDelta: function(delta) {
 		return delta > 0 ? '+'+scout.util.round(delta, 1) : scout.util.round(delta, 1);
-	}
+	},
+
+	modifyFavicon: function(href) {
+		var link = document.querySelector("link[rel='icon']");
+		link.setAttribute('type', 'image/png');
+		link.setAttribute('href', href);
+	},
 };
 
 scout.chartConf = {
@@ -1114,16 +1121,14 @@ scout.current = {
 	},
 
 	updateFavicon: function(cur, alternate) {
-		var link = document.querySelector("link[rel='icon']");
-		link.setAttribute('type', 'image/png');
-		link.setAttribute('href', scout.current.buildBgIcon(cur));
+		scout.util.modifyFavicon(scout.current.buildBgIcon(cur));
 		if (alternate) {
 			setTimeout(function() {
 				console.debug("favicon tick");
-				link.setAttribute('href', scout.current.buildBgIcon(cur, true));
+				scout.util.modifyFavicon(scout.current.buildBgIcon(cur, true));
 				setTimeout(function() {
 					console.debug("favicon tock");
-					link.setAttribute('href', scout.current.buildBgIcon(cur, false));
+					scout.util.modifyFavicon(scout.current.buildBgIcon(cur, false));
 				}, scout.config.favicon_alternate_ms);
 			}, scout.config.favicon_alternate_ms);
 		}
@@ -1194,17 +1199,26 @@ scout.current = {
 	},
 
 	shouldNotify: function(cur) {
-		return (cur['noise'] > 1 || cur['sgv'] < scout.config.sgv.target_min || cur['sgv'] > scout.config.sgv.target_max) && (cur["id"] != scout.current.nflast["id"]);
+		return (
+			cur['noise'] > 1 || 
+			cur['sgv'] < scout.config.sgv.target_min || 
+			cur['sgv'] > scout.config.sgv.target_max ||
+			Math.abs(cur['delta']) > scout.config.sgv.spike_delta
+		) && (cur["id"] != scout.current.nflast["id"]);
 	},
 
 	nfobj: null,
 	nflast: {"id": null},
 
 	notify: function(cur, force) {
-		if (!("Notification" in window)) return;
+		if (!("Notification" in window)) {
+			console.error("No Notification object");
+			return;
+		}
 		if (Notification.permission == "granted") {
-
-			if (scout.current.shouldNotify(cur) || !!force) {
+			var shouldNotify = scout.current.shouldNotify(cur);
+			console.debug("notify", shouldNotify, "force:", force);
+			if (shouldNotify || !!force) {
 				scout.current.nflast = cur;
 				var direction = scout.util.directionToArrow(cur['direction']);
 				var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
@@ -1229,9 +1243,12 @@ scout.current = {
 				return scout.current.nfobj;
 			}
 		} else if (Notification.permission != "denied") {
+			console.error("Notification permission status:", Notification.permission);
 			Notification.requestPermission(function(permission) {
 				if (permission == "granted") scout.current.notify(cur);
 			});
+		} else {
+			console.error("Notification permission status:", Notification.permission);
 		}
 	}
 };
