@@ -197,8 +197,19 @@
 								<b>Current uploader battery:</b> {current_bat}%<br />
 							</h4>
 							<b>Last update:</b> {current_bat_date}<br />
+							<form name="uploader_bat_form" action="javascript:;" onsubmit="return false">
+								<b>Number of readings:</b> 
+								<input type="number" value="{readings}" min=1 max=5000 step=1 id="uploader_bat_readings" name="uploader_bat_readings" /> 
+								<button onclick="scout.uploaderBat.refreshGraph();return false">
+									Update
+								</button>
+							</form>
 						</script>
-						<canvas id="uploaderBatCanvas"></canvas>
+						<div id="uploader_bat_canvas_container">
+						</div>
+						<script type="text/template" id="uploader_bat_canvas_tpl">
+							<canvas id="uploaderBatCanvas"></canvas>
+						</script>
 					</div>
 	          	</section>
 			</div>

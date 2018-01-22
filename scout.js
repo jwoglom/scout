@@ -20,7 +20,8 @@ var scout = {
 		favicon_alternate_ms: 5000,
 		reload_ms: 30*1000,
 		notification_ms: 5000,
-		notifyOldData_mins: 20
+		notifyOldData_mins: 20,
+		uploaderBat_default_readings: 1000
 	}
 };
 
@@ -1661,11 +1662,15 @@ scout.bat = {
 
 scout.uploaderBat = {
 	init: function() {
-		scout.device.fetchStatus(1000, function(data) {
-			console.log("uploaderBat", data);
-			scout.bat.load("uploaderBatCanvas", data);
-			scout.uploaderBat.currentStatus(data);
-		});
+		scout.uploaderBat.refreshGraph();
+	},
+
+	getReadingsCount: function() {
+		var readings = document.getElementById("uploader_bat_readings");
+		if (!readings) {
+			return scout.config.uploaderBat_default_readings;
+		}
+		return parseInt(readings.value);
 	},
 
 	currentStatus: function(data) {
@@ -1679,12 +1684,27 @@ scout.uploaderBat = {
 		var created = moment(latest['created_at']);
 		return {
 			"current_bat": latest["uploader"]["battery"],
-			"current_bat_date": created.format(scout.config.timeFormat+" a")
+			"current_bat_date": created.format(scout.config.timeFormat+" a"),
+			"readings": scout.uploaderBat.getReadingsCount()
 		};
+	},
+
+	updateCanvas: function(data) {
+		var cont = document.getElementById("uploader_bat_canvas_container");
+		cont.innerHTML = scout.tpl.renderHTML("uploader_bat_canvas_tpl", {});
+		scout.bat.load("uploaderBatCanvas", data);
 	},
 
 	refreshCurrentStatus: function() {
 		scout.device.fetchStatus(1, function(data) {
+			scout.uploaderBat.currentStatus(data);
+		});
+	},
+
+	refreshGraph: function() {
+		scout.device.fetchStatus(scout.uploaderBat.getReadingsCount(), function(data) {
+			console.log("uploaderBat", data);
+			scout.uploaderBat.updateCanvas(data);
 			scout.uploaderBat.currentStatus(data);
 		});
 	}
