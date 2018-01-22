@@ -158,6 +158,12 @@ scout.util = {
 		return 'rgba(0,255,0,0.5)';
 	},
 
+	batColor: function(bat) {
+		if (bat < 15) return 'rgba(255,0,0,0.5)';
+		if (bat < 35) return 'rgba(255,255,0,0.5)';
+		return 'rgba(0,255,0,0.5)';
+	},
+
 	fmtDuration: function(tm) {
 		var dur = moment.duration(tm);
 		var out = "";
@@ -573,6 +579,72 @@ scout.chartConf = {
 						suggestedMin: 0,
 					}
 				}]
+			}
+		}
+	},
+
+	bat: {
+		type: 'line',
+		data: {
+			labels: [// date
+			],
+			datasets: [{
+				label: 'Battery',
+				backgroundColor: [],
+				borderColor: [],
+				fill: false,
+				data: []
+			}]
+		},
+		options: {
+			responsive: true,
+	        title: {
+	            text: "Battery"
+	        },
+	        tooltips: {
+	        	mode: 'index',
+	        	intersect: false
+	        },
+			scales: {
+				xAxes: [{
+					type: "time",
+					time: {
+						parser: scout.config.timeFormat,
+						//unit: 'hour',
+						//unitStepSize: 4,
+						displayFormats: {
+							'minute': 'hh:mm a',
+							'hour': 'hh:mm a',
+							'day': 'MMM D'
+						},
+						// round: 'day'
+						tooltipFormat: 'MMM D hh:mm a'
+					},
+					scaleLabel: {
+						display: false,
+						labelString: 'Date'
+					}
+				}, ],
+				yAxes: [{
+					scaleLabel: {
+						display: false,
+						labelString: '%'
+					},
+					ticks: {
+						suggestedMin: 0,
+						suggestedMax: 100
+
+					}
+				}],
+			},
+			legend: {
+				display: false
+			},
+
+			elements: {
+				point: {
+					radius: 0
+				}
 			}
 		}
 	}
@@ -1372,8 +1444,8 @@ scout.fetch.week = function(cb) {
 }
 
 scout.device = {
-	fetchStatus: function(cb) {
-		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?ts=" + (+new Date()), function(resp) {
+	fetchStatus: function(count, cb) {
+		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
 			var data = JSON.parse(resp.text);
 			cb(data);
 		});
@@ -1390,7 +1462,7 @@ scout.device = {
 	},
 
 	update: function() {
-		scout.device.fetchStatus(function(data) {
+		scout.device.fetchStatus(1, function(data) {
 			var latest = data[0];
 			console.log("latest devicestatus:", latest);
 			document.querySelector("#device_battery").innerHTML = latest["uploader"]["battery"];
@@ -1491,9 +1563,7 @@ scout.sab = {
 		chart.update();
 		return chart;
 	}
-
-
-}
+};
 
 scout.sensorAge = {
 	init: function() {
@@ -1549,7 +1619,76 @@ scout.sensorAge = {
 		}
 		return avg/hrs.length;
 	}
-}
+};
+
+// Battery status chart
+scout.bat = {
+	init: function(canvasId, extraConf) {
+		var batCtx = document.getElementById(canvasId).getContext("2d");
+		// single-layer copy. can't use full deep copy due to moment()
+		var batConf = Object.assign({}, scout.chartConf.bat);
+
+		// hack for deep copy of data fields.
+		batConf.data = JSON.parse(JSON.stringify(scout.chartConf.bat.data));
+		return new Chart(batCtx, batConf);
+	},
+
+	callback: function(chart, data) {
+		var dataset = chart.data.datasets[0];
+		dataset.backgroundColor = [];
+		dataset.borderColor = [];
+		var pcts = [];
+		for (var i=0; i<data.length; i++) {
+			var pct = parseInt(data[i]['uploader']['battery']);
+			var time = moment(data[i]['created_at']);
+			dataset.data.push({
+				x: time,
+				y: pct
+			});
+			dataset.backgroundColor.push(scout.util.batColor(pct));
+			dataset.borderColor.push(scout.util.batColor(pct));
+		}
+
+	},
+
+	load: function(canvasId, data, extraConf) {
+		var chart = scout.bat.init(canvasId, extraConf);
+		scout.bat.callback(chart, data);
+		chart.update();
+		return chart;
+	}
+};
+
+scout.uploaderBat = {
+	init: function() {
+		scout.device.fetchStatus(1000, function(data) {
+			console.log("uploaderBat", data);
+			scout.bat.load("uploaderBatCanvas", data);
+			scout.uploaderBat.currentStatus(data);
+		});
+	},
+
+	currentStatus: function(data) {
+		var cont = document.getElementById("uploader_bat_status");
+		var data = scout.uploaderBat.currentStatusData(data);
+		cont.innerHTML = scout.tpl.renderHTML("uploader_bat_status_tpl", data);
+	},
+
+	currentStatusData: function(data) {
+		var latest = data[0];
+		var created = moment(latest['created_at']);
+		return {
+			"current_bat": latest["uploader"]["battery"],
+			"current_bat_date": created.format(scout.config.timeFormat+" a")
+		};
+	},
+
+	refreshCurrentStatus: function() {
+		scout.device.fetchStatus(1, function(data) {
+			scout.uploaderBat.currentStatus(data);
+		});
+	}
+};
 Chart.defaults.global.plugins.datalabels.display = false;
 Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({

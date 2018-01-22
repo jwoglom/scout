@@ -31,6 +31,7 @@
 				<a onclick="scout.inRange.init()" href="#in_range" class="mdl-layout__tab">In Range</a>
 				<a onclick="scout.hourlyPct.init()" href="#hourly_pct" class="mdl-layout__tab">Percentile</a>
 				<a onclick="scout.sensorAge.init()" href="#sensor_age" class="mdl-layout__tab">Sensor Age</a>
+				<a onclick="scout.uploaderBat.init()" href="#uploader_bat" class="mdl-layout__tab">Uploader Battery</a>
 			</div>
 		</header>
 		<main class="mdl-layout__content">
@@ -184,6 +185,20 @@
 							<b>Average sensor age:</b> {avg_sensor_age}
 						</script>
 						<canvas id="sageBarCanvas"></canvas>
+					</div>
+	          	</section>
+			</div>
+			<div class="mdl-layout__tab-panel" id="uploader_bat">
+				<section class="uploader_bat_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+					<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+						<span id="uploader_bat_status"></span>
+						<script type="text/template" id="uploader_bat_status_tpl">
+							<h4>
+								<b>Current uploader battery:</b> {current_bat}%<br />
+							</h4>
+							<b>Last update:</b> {current_bat_date}<br />
+						</script>
+						<canvas id="uploaderBatCanvas"></canvas>
 					</div>
 	          	</section>
 			</div>
