@@ -18,7 +18,9 @@ var scout = {
 		modifyTitle: false,
 		timeFormat: 'MM/DD/YYYY HH:mm',
 		favicon_alternate_ms: 5000,
-		reload_ms: 30*1000
+		reload_ms: 30*1000,
+		notification_ms: 5000,
+		notifyOldData_mins: 20
 	}
 };
 
@@ -105,10 +107,14 @@ scout.util = {
 		}[dir];
 	},
 
-	minsAgo: function(date) {
+	timeAgo: function(date) {
 		var mom = moment(date).fromNow();
 		if (mom == "a few seconds ago") return "just now";
 		return mom;
+	},
+
+	minsAgo: function(date) {
+		return moment.duration(moment().diff(date)).asMinutes();
 	},
 
 	noise: function(n) {
@@ -1098,7 +1104,10 @@ scout.current = {
 			direction = "old";
 			curSgv.classList.add('old-data');
 			curMins.classList.add('old-data');
-			scout.current.notifyOldData(cur);
+			if (scout.current.shouldNotifyOldData(cur)) {
+				console.debug("shouldNotifyOldData: yes");
+				scout.current.notifyOldData(cur);
+			} else console.debug("shouldNotifyOldData: no");
 		} else if (scout.util.isMissedData(cur['date'])) {
 			direction = "miss";
 			curSgv.classList.add('missed-data');
@@ -1107,7 +1116,7 @@ scout.current = {
 
 		curSgv.innerHTML = sgvText;
 		curSgv.style.color = scout.util.colorForSgv(cur['sgv']);
-		curMins.innerHTML = scout.util.minsAgo(cur['date']);
+		curMins.innerHTML = scout.util.timeAgo(cur['date']);
 		document.querySelector("#current_direction").innerHTML = direction;
 		document.querySelector("#current_delta").innerHTML = delta;
 		if (noise.length > 2) {
@@ -1244,6 +1253,9 @@ scout.current = {
 					document.body.focus();
 					this.close();
 				}
+				setTimeout(function() {
+					scout.current.nfobj.close()
+				}, scout.config.notification_ms);
 				return scout.current.nfobj;
 			}
 		} else if (Notification.permission != "denied") {
@@ -1268,7 +1280,7 @@ scout.current = {
 			var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
 			var noise = scout.util.noise(cur['noise']);
 
-			var text = "Old data: " + scout.util.minsAgo(cur['date']);
+			var text = "Old data: " + scout.util.timeAgo(cur['date']);
 			var body = "BG: "+cur['sgv']+" Delta: "+delta+" "+noise;
 			var bgIcon = scout.current.buildBgIcon(cur);
 			var options = {
@@ -1284,6 +1296,9 @@ scout.current = {
 				document.body.focus();
 				this.close();
 			}
+			setTimeout(function() {
+				scout.current.nfobj.close()
+			}, scout.config.notification_ms);
 			return scout.current.nfobj;
 		} else if (Notification.permission != "denied") {
 			console.error("Notification permission status:", Notification.permission);
@@ -1293,6 +1308,11 @@ scout.current = {
 		} else {
 			console.error("Notification permission status:", Notification.permission);
 		}
+	},
+
+	shouldNotifyOldData: function(cur) {
+		var reload = 60/parseInt(scout.config.reload_ms/1000);
+		return parseInt(scout.util.minsAgo(cur['date'])*reload) % (scout.config.notifyOldData_mins*reload) < 1;
 	}
 };
 
