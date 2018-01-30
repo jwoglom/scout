@@ -1077,6 +1077,7 @@ scout.sgv = {
 	},
 
 	primaryCallback: function(data) {
+		scout.ds.add('sgv', data['sgv']);
 		scout.sgv.callback(scout.chart.sgv, data);
 	},
 
@@ -1152,12 +1153,43 @@ scout.sgv = {
 	}
 };
 
+scout.ds = {
+	sgv: [],
+	/*treatments: [],
+	devicestatus: [],
+	cals: [],
+	profiles: [],
+	mbgs: []*/
+
+	add: function(type, data) {
+		var cat = scout.ds[type];
+		var adds = 0;
+		for (var i=0; i<data.length; i++) {
+			if (cat.filter(function(e) { return e['_id'] == data[i]['_id']; }).length == 0) {
+				cat.push(data[i]);
+				adds++;
+			}
+		}
+		console.debug("ds.add: "+adds);
+	},
+
+	get: function(type, filter) {
+		return scout.ds[type].filter(filter);
+	},
+
+	getLatestHrs: function(type, hrs) {
+		return scout.ds.get(type, function(e) {
+			return moment.duration(moment().diff(e['date'])).asHours() <= hrs;
+		});
+	}
+};
+
 scout.current = {
 	currentEntry: null,
 	loadSgv: function(cur) {
 		if (!cur) return;
 		var new_data = (scout.current.currentEntry == null || scout.current.currentEntry['date'] != cur['date']);
-		if (new_data) console.log("loadSgv new data");
+		if (new_data) console.log("loadSgv new data @", new Date());
 		scout.current.currentEntry = cur;
 
 		var sgvText = cur['sgv'];
@@ -1777,7 +1809,6 @@ window.onload = function() {
 	scout.sgv.currentLength = scout.fetch.halfday;
 	scout.sgv.currentLength(scout.sgv.primaryCallback);
 	setInterval(function() {
-		console.log("reload", scout.sgv.currentLength);
 		scout.sgv.currentLength(scout.sgv.primaryCallback);
 	}, scout.config.reload_ms);
 	scout.device.update();
