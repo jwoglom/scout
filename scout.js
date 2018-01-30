@@ -1077,7 +1077,6 @@ scout.sgv = {
 	},
 
 	primaryCallback: function(data) {
-		scout.ds.add('sgv', data['sgv']);
 		scout.sgv.callback(scout.chart.sgv, data);
 	},
 
@@ -1158,7 +1157,7 @@ scout.ds = {
 	profiles: [],
 	mbgs: []*/
 
-	add: function(type, data) {
+	_add: function(type, data) {
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
@@ -1168,12 +1167,38 @@ scout.ds = {
 			}
 		}
 		console.debug("ds.add["+type+"] "+adds+"/"+data.length);
+		return adds;
+	},
+
+	// API poll
+	add: function(type, data) {
+		var adds = scout.ds._add(type, data);
 		if (adds > 0) {
 			scout.ds._sort(type);
-			if (type == 'sgv') {
-				// TODO: only run if newest sgv entry in list changed
-				scout.current.loadSgv(data[0]);
-			}
+			scout.ds._typeCallback(type);
+		}
+	},
+
+	// websocket
+	deltaAdd: function(data) {
+		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
+		if (data["sgvs"]) scout.ds.add("sgv", data["sgvs"]);
+		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
+		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
+	},
+
+	_typeCallback: function(type) {
+		if (type == 'sgv') {
+			scout.current.loadSgv(scout.ds.getLatest('sgv'));
+
+			// update graph
+		}
+		else if (type == 'devicestatus') {
+			scout.device.renderStatus(scout.ds['devicestatus']);
+		}
+		else if (type == 'treatments') {
+			// update graph
+
 		}
 	},
 
@@ -1511,19 +1536,23 @@ scout.device = {
 		}, cb);
 	},
 
-	update: function() {
-		scout.device.fetchStatus(1, function(data) {
-			var latest = data[0];
-			console.log("latest devicestatus:", latest);
-			document.querySelector("#device_battery").innerHTML = latest["uploader"]["battery"];
-			document.querySelector("#device_name").innerHTML = latest["device"];
-		});
+	renderStatus: function(data) {
+		var latest = data[0];
+		console.log("latest devicestatus:", latest);
+		document.querySelector("#device_battery").innerHTML = latest["uploader"]["battery"];
+		document.querySelector("#device_name").innerHTML = latest["device"];
+	},
 
-		scout.device.fetchSensorStart(function(trData) {
-			var latest = trData[0];
-			console.log("latest sensorstart:", latest);
-			document.querySelector("#cgm_sensor_age").innerHTML = moment(latest["created_at"]).fromNow();
-		});
+	renderSensor: function(trData) {
+		var latest = trData[0];
+		console.log("latest sensorstart:", latest);
+		document.querySelector("#cgm_sensor_age").innerHTML = moment(latest["created_at"]).fromNow();
+	},
+
+	update: function() {
+		scout.device.fetchStatus(1, scout.device.renderStatus);
+
+		scout.device.fetchSensorStart(scout.device.renderSensor);
 	}
 };
 
