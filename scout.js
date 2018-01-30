@@ -1088,10 +1088,6 @@ scout.sgv = {
 
 	sgvCallback: function(chart, fullData) {
 		var data = fullData["sgv"];
-		if (chart === scout.chart.sgv) {
-			console.debug("isSGVchart");
-			scout.current.loadSgv(data[0]);
-		}
 		console.log("sgvCallback data", data);
 		var dataset = chart.config.data.datasets[0];
 		dataset.data = [];
@@ -1155,8 +1151,9 @@ scout.sgv = {
 
 scout.ds = {
 	sgv: [],
-	/*treatments: [],
+	tr: [],
 	devicestatus: [],
+	/*
 	cals: [],
 	profiles: [],
 	mbgs: []*/
@@ -1170,17 +1167,36 @@ scout.ds = {
 				adds++;
 			}
 		}
-		console.debug("ds.add: "+adds);
+		console.debug("ds.add["+type+"] "+adds+"/"+data.length);
+		if (adds > 0) {
+			scout.ds._sort(type);
+			if (type == 'sgv') {
+				// TODO: only run if newest sgv entry in list changed
+				scout.current.loadSgv(data[0]);
+			}
+		}
 	},
 
-	get: function(type, filter) {
+	filter: function(type, filter) {
 		return scout.ds[type].filter(filter);
 	},
 
+	_sort: function(type) {
+		scout.ds[type].sort(function(a, b) {
+			return a.date-b.date;
+		});
+		console.debug("ds.sort["+type+"]");
+	},
+
 	getLatestHrs: function(type, hrs) {
-		return scout.ds.get(type, function(e) {
+		return scout.ds.filter(type, function(e) {
 			return moment.duration(moment().diff(e['date'])).asHours() <= hrs;
 		});
+	},
+
+	getLatest: function(type) {
+		var typ = scout.ds[type];
+		return typ[typ.length-1];
 	}
 };
 
@@ -1431,8 +1447,8 @@ scout.sgvfetch = function(args, cb) {
 	parsed += "&ts=" + (+new Date());
 	superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
+		scout.ds.add("sgv", data);
 		cb(data);
-
 	});
 }
 
@@ -1480,6 +1496,7 @@ scout.device = {
 	fetchStatus: function(count, cb) {
 		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
 			var data = JSON.parse(resp.text);
+			scout.ds.add('devicestatus', data);
 			cb(data);
 		});
 	},
@@ -1522,8 +1539,8 @@ scout.trfetch = function(args, cb) {
 	console.debug("trfetch", args, parsed);
 	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
+		scout.ds.add("tr", data);
 		cb(data);
-
 	});
 };
 
