@@ -2,10 +2,12 @@ var scout = {
 	config: {
 		urls: {
 			apiRoot: '',
+			domainRoot: '',
 			sgvEntries: 'entries/sgv.json',
 			deviceStatus: 'devicestatus.json',
 			status: 'status.json',
-			treatments: 'treatments.json'
+			treatments: 'treatments.json',
+			socketio_js: 'socket.io/socket.io.js'
 		},
 		sgv: {
 			target_min: 80,
@@ -21,7 +23,8 @@ var scout = {
 		reload_ms: 30*1000,
 		notification_ms: 5000,
 		notifyOldData_mins: 20,
-		uploaderBat_default_readings: 1000
+		uploaderBat_default_readings: 1000,
+		fetch_mode: 'ajax' //websocket
 	}
 };
 
@@ -1179,9 +1182,15 @@ scout.ds = {
 		}
 	},
 
+	_convertSgvs: function(sgvs) {
+		// TODO: calculate delta
+		return;
+	},
+
 	// websocket
 	deltaAdd: function(data) {
 		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
+		console.debug("ds.deltaAdd:", data);
 		if (data["sgvs"]) scout.ds.add("sgv", data["sgvs"]);
 		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
 		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
@@ -1787,6 +1796,91 @@ scout.uploaderBat = {
 		});
 	}
 };
+
+scout.ws = {
+	socket: null,
+	silentInit: function() {
+		scout.ws.socket = io(scout.config.domainRoot);
+		var socket = scout.ws.socket;
+		
+		socket.on('connect', function() {
+		    console.log('Client connected to server.');
+		    var history = 48;
+		    socket.emit('authorize', {
+		        client: 'web',
+		        secret: null,
+		        token: null,
+		        history: history
+		    }, function authCallback(data) {
+		        console.log('Client rights:', data);
+		    });
+		  });
+
+		socket.on('dataUpdate', function(data) {
+			console.log('SilentDataUpdate', data);
+			scout.ws.foo++;
+			//scout.ds.deltaAdd(data);
+		});
+	},
+	foo: 0,
+	init: function() {
+		scout.ws.socket = io(scout.config.domainRoot);
+		var socket = scout.ws.socket;
+		
+		socket.on('connect', function() {
+		    console.log('Client connected to server.');
+		    var history = 48;
+		    socket.emit('authorize', {
+		        client: 'web',
+		        secret: null,
+		        token: null,
+		        history: history
+		    }, function authCallback(data) {
+		        console.log('Client rights:', data);
+		    });
+		  });
+
+		socket.on('dataUpdate', function(data) {
+			console.log('dataUpdate', data);
+			scout.ds.deltaAdd(data);
+		});
+	}
+};
+
+scout.init = {
+	fetch: function() {
+		if (scout.config.fetch_mode == 'ajax') {
+			scout.init.ajax();
+		} else if (scout.config.fetch_mode == 'websocket') {
+			scout.init.websocket();
+		}
+	},
+
+	ajax: function() {
+		scout.sgv.currentLength = scout.fetch.halfday;
+		scout.sgv.currentLength(scout.sgv.primaryCallback);
+		setInterval(function() {
+			scout.sgv.currentLength(scout.sgv.primaryCallback);
+		}, scout.config.reload_ms);
+		scout.device.update();
+	},
+
+	websocket: function() {
+		var scr = document.createElement('script');
+		scr.type = 'text/javascript';
+		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_js;
+		scr.onload = scout.ws.init;
+		document.body.appendChild(scr);
+	},
+	silentWebsocket: function() {
+		var scr = document.createElement('script');
+		scr.type = 'text/javascript';
+		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_js;
+		scr.onload = scout.ws.silentInit;
+		document.body.appendChild(scr);
+	}
+};
+
 Chart.defaults.global.plugins.datalabels.display = false;
 Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({
@@ -1852,11 +1946,6 @@ Chart.pluginService.register({
 
 window.onload = function() {
 	scout.sgv.primaryInit();
-	scout.sgv.currentLength = scout.fetch.halfday;
-	scout.sgv.currentLength(scout.sgv.primaryCallback);
-	setInterval(function() {
-		scout.sgv.currentLength(scout.sgv.primaryCallback);
-	}, scout.config.reload_ms);
-	scout.device.update();
-	
+	scout.init.fetch();
+	scout.init.silentWebsocket();
 };
