@@ -28,6 +28,8 @@ var scout = {
 	}
 };
 
+if (scout.config.fetch_mode == 'websocket') document.title += ' [websocket]';
+
 scout.util = {
 	colorForSgv: function(sgv) {
 		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 0, 0)';
@@ -1196,7 +1198,7 @@ scout.ds = {
 			'dateString': moment(sgv['millis']).format(),
 			'sysTime': moment(sgv['millis']).format(),
 			'type': 'sgv',
-			'delta': prev != null ? sgv['mgdl']-prev['mgdl'] : 0,
+			'delta': prev != null ? sgv['mgdl']-prev : 0,
 			'device': sgv['device'],
 			'direction': sgv['direction'],
 			'filtered': sgv['filtered'],
@@ -1212,7 +1214,14 @@ scout.ds = {
 		console.debug("convertSgvs: ", sgvs);
 		var upd = [];
 		for (var i=0; i<sgvs.length; i++) {
-			upd[i] = scout.ds._convertSgv(sgvs[i], i>0 ? sgvs[i-1] : null);
+			var prv;
+			if (i > 0) {
+				prv = sgvs[i-1]['mgdl'];
+			} else {
+				var latest = scout.ds.getLatest('sgv');
+				prv = latest ? latest['sgv'] : null;
+			}
+			upd[i] = scout.ds._convertSgv(sgvs[i], prv);
 		}
 		console.debug("convertSgvs done: ", upd);
 		return upd;
