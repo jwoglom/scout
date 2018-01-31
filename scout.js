@@ -24,7 +24,7 @@ var scout = {
 		notification_ms: 5000,
 		notifyOldData_mins: 20,
 		uploaderBat_default_readings: 1000,
-		fetch_mode: 'ajax' //websocket
+		fetch_mode: location.search.indexOf('websocket=true') != -1 ? 'websocket': 'ajax'
 	}
 };
 
@@ -1083,6 +1083,13 @@ scout.sgv = {
 		scout.sgv.callback(scout.chart.sgv, data);
 	},
 
+	primaryDSCallback: function() {
+		scout.sgv.primaryCallback({
+			'sgv': scout.ds.getLatestHrs('sgv', 12),
+			'tr': scout.ds.getLatestHrs('tr', 12)
+		});
+	},
+
 	callback: function(chart, data) {
 		scout.sgv.sgvCallback(chart, data);
 		scout.sgv.trCallback(chart, data);
@@ -1098,7 +1105,7 @@ scout.sgv = {
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
 			dataset.data.push({
-				x: moment(obj['dateString']),
+				x: moment(obj['date']),
 				y: obj['sgv']
 			});
 			sum += obj['sgv'];
@@ -1182,16 +1189,40 @@ scout.ds = {
 		}
 	},
 
-	_convertSgvs: function(sgvs) {
+	_convertSgv: function(sgv, prev) {
 		// TODO: calculate delta
-		return;
+		return {
+			'date': sgv['mills'],
+			'dateString': moment(sgv['millis']).format(),
+			'sysTime': moment(sgv['millis']).format(),
+			'type': 'sgv',
+			'delta': prev != null ? sgv['mgdl']-prev['mgdl'] : 0,
+			'device': sgv['device'],
+			'direction': sgv['direction'],
+			'filtered': sgv['filtered'],
+			'noise': sgv['noise'],
+			'rssi': sgv['rssi'],
+			'sgv': sgv['mgdl'],
+			'unfiltered': sgv['unfiltered'],
+			'_id': sgv['mills']
+		};
+	},
+
+	_convertSgvs: function(sgvs) {
+		console.debug("convertSgvs: ", sgvs);
+		var upd = [];
+		for (var i=0; i<sgvs.length; i++) {
+			upd[i] = scout.ds._convertSgv(sgvs[i], i>0 ? sgvs[i-1] : null);
+		}
+		console.debug("convertSgvs done: ", upd);
+		return upd;
 	},
 
 	// websocket
 	deltaAdd: function(data) {
 		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
 		console.debug("ds.deltaAdd:", data);
-		if (data["sgvs"]) scout.ds.add("sgv", data["sgvs"]);
+		if (data["sgvs"]) scout.ds.add("sgv", scout.ds._convertSgvs(data["sgvs"]));
 		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
 		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
 	},
@@ -1200,6 +1231,8 @@ scout.ds = {
 		if (type == 'sgv') {
 			scout.current.loadSgv(scout.ds.getLatest('sgv'));
 
+
+			scout.sgv.primaryDSCallback();
 			// update graph
 		}
 		else if (type == 'devicestatus') {
@@ -1208,6 +1241,7 @@ scout.ds = {
 		else if (type == 'treatments') {
 			// update graph
 
+			scout.sgv.primaryDSCallback();
 		}
 	},
 
@@ -1222,9 +1256,14 @@ scout.ds = {
 		console.debug("ds.sort["+type+"]");
 	},
 
+	_dateCol: function(type) {
+		if (type == 'sgv') return 'date';
+		if (type == 'tr') return 'created_at';
+	},
+
 	getLatestHrs: function(type, hrs) {
 		return scout.ds.filter(type, function(e) {
-			return moment.duration(moment().diff(e['date'])).asHours() <= hrs;
+			return moment.duration(moment().diff(e[scout.ds._dateCol(type)])).asHours() <= hrs;
 		});
 	},
 
@@ -1800,7 +1839,7 @@ scout.uploaderBat = {
 scout.ws = {
 	socket: null,
 	silentInit: function() {
-		scout.ws.socket = io(scout.config.domainRoot);
+		scout.ws.socket = io(scout.config.urls.domainRoot);
 		var socket = scout.ws.socket;
 		
 		socket.on('connect', function() {
@@ -1824,7 +1863,7 @@ scout.ws = {
 	},
 	foo: 0,
 	init: function() {
-		scout.ws.socket = io(scout.config.domainRoot);
+		scout.ws.socket = io(scout.config.urls.domainRoot);
 		var socket = scout.ws.socket;
 		
 		socket.on('connect', function() {
@@ -1851,6 +1890,7 @@ scout.init = {
 	fetch: function() {
 		if (scout.config.fetch_mode == 'ajax') {
 			scout.init.ajax();
+			scout.init.silentWebsocket();
 		} else if (scout.config.fetch_mode == 'websocket') {
 			scout.init.websocket();
 		}
@@ -1947,5 +1987,4 @@ Chart.pluginService.register({
 window.onload = function() {
 	scout.sgv.primaryInit();
 	scout.init.fetch();
-	scout.init.silentWebsocket();
 };
