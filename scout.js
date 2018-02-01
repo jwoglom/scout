@@ -25,7 +25,8 @@ var scout = {
 		notifyOldData_mins: 20,
 		uploaderBat_default_readings: 1000,
 		sensor_age_days: 7,
-		fetch_mode: location.search.indexOf('websocket=true') != -1 ? 'websocket': 'ajax'
+		fetch_mode: 'websocket',
+		fetch_delta_fallback: true
 	}
 };
 
@@ -1184,8 +1185,14 @@ scout.ds = {
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
-			if (cat.filter(function(e) { return e['_id'] == data[i]['_id']; }).length == 0) {
+			var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
+			if (fl.length == 0) {
 				cat.push(data[i]);
+				adds++;
+			} else if (fl.length == 1 && fl[0]['converted']) {
+				scout.ds[type] = scout.ds[type].filter(function(e) { return e['_id'] != fl[0]['_id']; });
+				scout.ds[type].push(data[i]);
+				console.debug("ds.addReplaceConverted["+e['_id']+"]", fl, data[i]);
 				adds++;
 			}
 		}
@@ -1217,7 +1224,8 @@ scout.ds = {
 			'rssi': sgv['rssi'],
 			'sgv': sgv['mgdl'],
 			'unfiltered': sgv['unfiltered'],
-			'_id': sgv['mills']
+			'_id': sgv['mills'],
+			'converted': true
 		};
 	},
 
@@ -1544,6 +1552,10 @@ scout.sgvfetch = function(args, cb) {
 		scout.ds.add("sgv", data);
 		cb(data);
 	});
+}
+
+scout.sgvfetch.latest = function(cb) {
+	return scout.sgvfetch({"count": 1}, cb);
 }
 
 scout.fetch = function(args, cb) {
@@ -1908,6 +1920,12 @@ scout.ws = {
 		socket.on('dataUpdate', function(data) {
 			console.log('dataUpdate', data);
 			scout.ds.deltaAdd(data);
+			// do a JSON request for this data to get a more accurate delta
+			if (scout.config.fetch_delta_fallback) {
+				scout.sgvfetch.latest(function(d) {
+					console.log("SGVfetch latest on dataUpdate:", d);
+				});
+			}
 		});
 	}
 };
