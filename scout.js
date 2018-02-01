@@ -24,6 +24,7 @@ var scout = {
 		notification_ms: 5000,
 		notifyOldData_mins: 20,
 		uploaderBat_default_readings: 1000,
+		sensor_age_days: 7,
 		fetch_mode: location.search.indexOf('websocket=true') != -1 ? 'websocket': 'ajax'
 	}
 };
@@ -119,6 +120,11 @@ scout.util = {
 		return mom;
 	},
 
+	embedTimeago: function(date) {
+		var fmt = moment(date).format();
+		return '<span class="timeago" datetime="' + fmt + '"></span>';
+	},
+
 	minsAgo: function(date) {
 		return moment.duration(moment().diff(date)).asMinutes();
 	},
@@ -193,6 +199,11 @@ scout.util = {
 		link.setAttribute('type', 'image/png');
 		link.setAttribute('href', href);
 	},
+
+	updateTimeago: function() {
+		// needs to be re-run after DOM changes
+		timeago().render(document.querySelectorAll('.timeago'));
+	}
 };
 
 scout.chartConf = {
@@ -1319,7 +1330,8 @@ scout.current = {
 
 		curSgv.innerHTML = sgvText;
 		curSgv.style.color = scout.util.colorForSgv(cur['sgv']);
-		curMins.innerHTML = scout.util.timeAgo(cur['date']);
+		curMins.innerHTML = scout.util.embedTimeago(cur['date']);
+		scout.util.updateTimeago();
 		document.querySelector("#current_direction").innerHTML = direction;
 		document.querySelector("#current_delta").innerHTML = delta;
 		if (noise.length > 2) {
@@ -1602,8 +1614,12 @@ scout.device = {
 
 	renderSensor: function(trData) {
 		var latest = trData[0];
-		console.log("latest sensorstart:", latest);
-		document.querySelector("#cgm_sensor_age").innerHTML = moment(latest["created_at"]).fromNow();
+		var created = latest["created_at"];
+		var expire = moment(latest["created_at"]).add(scout.config.sensor_age_days, "days").format();
+		console.log("latest sensorstart:", latest, created);
+		document.querySelector("#cgm_sensor_age").innerHTML = scout.util.embedTimeago(created);
+		document.querySelector("#cgm_sensor_replace").innerHTML = scout.util.embedTimeago(expire);
+		scout.util.updateTimeago();
 	},
 
 	update: function() {
@@ -1885,6 +1901,7 @@ scout.ws = {
 		        history: history
 		    }, function authCallback(data) {
 		        console.log('Client rights:', data);
+				scout.device.update();
 		    });
 		  });
 
@@ -1996,4 +2013,5 @@ Chart.pluginService.register({
 window.onload = function() {
 	scout.sgv.primaryInit();
 	scout.init.fetch();
+	scout.util.updateTimeago();
 };

@@ -7,16 +7,17 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1.0" />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
 	<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-orange.min.css" />
-	<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+	<script defer type="text/javascript" src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 
-	<script src="scripts/moment.min.js"></script>
-	<script src="scripts/Chart.js"></script>
-	<script src="scripts/chartjs-utils.js"></script>
-	<script src="scripts/chartjs-plugin-annotation.min.js"></script>
-	<script src="scripts/chartjs-plugin-datalabels.min.js"></script>
-	<script src="scripts/superagent.js"></script>
-	<script type='text/javascript' src='scout.js'></script>
-	<script type='text/javascript' src='secret.js'>
+	<script type="text/javascript" src="scripts/moment.min.js"></script>
+	<script type="text/javascript" src="scripts/Chart.js"></script>
+	<script type="text/javascript" src="scripts/chartjs-utils.js"></script>
+	<script type="text/javascript" src="scripts/chartjs-plugin-annotation.min.js"></script>
+	<script type="text/javascript" src="scripts/chartjs-plugin-datalabels.min.js"></script>
+	<script type="text/javascript" src="scripts/superagent.js"></script>
+	<script type="text/javascript" src="scripts/timeago.js"></script>
+	<script type="text/javascript" src="scout.js"></script>
+	<script type="text/javascript" src="secret.js">
 		// scout.config.urls.apiRoot = "https://your-nightscout-host/api/v1/";
 	</script>
 
@@ -57,11 +58,14 @@
 					<div class="mdl-card mdl-cell mdl-cell--4-col">
 						<h4 class="current-subhead">
 							Battery: <span id="device_battery"></span><br />
-							<span id="device_name"></span>
+							<span id="device_name" class="current-smtext"></span>
 						</h4>
 						<h4 class="current-subhead">
-							Sensor: <span id="cgm_sensor_age"></span>
-						</h4>
+							Sensor: <span id="cgm_sensor_age"></span><br />
+							<span class="current-mdtext">
+								replace: <span id="cgm_sensor_replace"></span>
+							</span>
+						</h5>
 					</div>
 				</section>
 				<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
@@ -474,6 +478,14 @@
  	text-align: center;
  }
 
+  h5.current-subhead {
+ 	font-size: 24x;
+ 	line-height: 24px;
+ 	margin: 0 10px;
+
+ 	text-align: center;
+ }
+
 
  .mdl-layout__tab-bar.small-tab-bar .mdl-layout__tab {
  	height: 32px;
@@ -518,8 +530,12 @@
  	content: "%";
  }
 
- #device_name {
+ .current-smtext {
  	font-size: 14px;
+ }
+
+ .current-mdtext {
+ 	font-size: 18px;
  }
 
  .sensor_age_section canvas {
