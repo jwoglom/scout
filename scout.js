@@ -30,8 +30,6 @@ var scout = {
 	}
 };
 
-if (scout.config.fetch_mode == 'websocket') document.title += ' [websocket]';
-
 scout.util = {
 	colorForSgv: function(sgv) {
 		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 0, 0)';
@@ -123,7 +121,7 @@ scout.util = {
 
 	embedTimeago: function(date) {
 		var fmt = moment(date).format();
-		return '<span class="timeago" datetime="' + fmt + '"></span>';
+		return '<span class="timeago" datetime="' + fmt + '" title="' + fmt + '"></span>';
 	},
 
 	minsAgo: function(date) {
@@ -1185,14 +1183,14 @@ scout.ds = {
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
-			var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
+			var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
 			if (fl.length == 0) {
 				cat.push(data[i]);
 				adds++;
 			} else if (fl.length == 1 && fl[0]['converted']) {
-				scout.ds[type] = scout.ds[type].filter(function(e) { return e['_id'] != fl[0]['_id']; });
+				scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
 				scout.ds[type].push(data[i]);
-				console.debug("ds.addReplaceConverted["+e['_id']+"]", fl, data[i]);
+				console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 				adds++;
 			}
 		}
@@ -1247,10 +1245,16 @@ scout.ds = {
 	},
 
 	// websocket
-	deltaAdd: function(data) {
+	deltaAdd: function(data, silentSgv) {
 		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
 		console.debug("ds.deltaAdd:", data);
-		if (data["sgvs"]) scout.ds.add("sgv", scout.ds._convertSgvs(data["sgvs"]));
+		if (data["sgvs"]) {
+			scout.ds._add("sgv", scout.ds._convertSgvs(data["sgvs"]));
+			scout.ds._sort('sgv');
+			if (!silentSgv) {
+				scout.ds._typeCallback('sgv');
+			}
+		}
 		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
 		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
 	},
@@ -1303,11 +1307,13 @@ scout.ds = {
 
 scout.current = {
 	currentEntry: null,
+	lastAttemptTime: null,
 	loadSgv: function(cur) {
 		if (!cur) return;
 		var new_data = (scout.current.currentEntry == null || scout.current.currentEntry['date'] != cur['date']);
 		if (new_data) console.log("loadSgv new data @", new Date());
 		scout.current.currentEntry = cur;
+		scout.current.lastAttemptTime = new Date();
 
 		var sgvText = cur['sgv'];
 		var direction = scout.util.directionToArrow(cur['direction']);
@@ -1536,6 +1542,26 @@ scout.current = {
 	shouldNotifyOldData: function(cur) {
 		var reload = 60/parseInt(scout.config.reload_ms/1000);
 		return parseInt(scout.util.minsAgo(cur['date'])*reload) % (scout.config.notifyOldData_mins*reload) < 1;
+	},
+
+	needManualFetch: function() {
+		var minDiff = moment.duration(moment().diff(scout.current.lastAttemptTime)).asMinutes();
+		if (minDiff > scout.config.missed_minutes) console.log("manualFetch diff:", minDiff);
+		return minDiff > scout.config.missed_minutes;
+	},
+
+	manualFetch: function() {
+		scout.current.lastAttemptTime = new Date();
+		var latest = scout.ds.getLatest('sgv')['date'];
+		scout.sgvfetch.gte(moment(latest).format(), function(d) {
+			console.log("manualFetch:", d);
+		});
+	},
+
+	checkManualFetch: function() {
+		if (scout.current.needManualFetch()) {
+			scout.current.manualFetch();
+		}
 	}
 };
 
@@ -1554,8 +1580,8 @@ scout.sgvfetch = function(args, cb) {
 	});
 }
 
-scout.sgvfetch.latest = function(cb) {
-	return scout.sgvfetch({"count": 1}, cb);
+scout.sgvfetch.gte = function(gte, cb) {
+	return scout.sgvfetch({"date": {"gte": gte}, "count": 9999}, cb);
 }
 
 scout.fetch = function(args, cb) {
@@ -1919,10 +1945,11 @@ scout.ws = {
 
 		socket.on('dataUpdate', function(data) {
 			console.log('dataUpdate', data);
-			scout.ds.deltaAdd(data);
+			scout.ds.deltaAdd(data, scout.config.fetch_data_fallback);
 			// do a JSON request for this data to get a more accurate delta
 			if (scout.config.fetch_delta_fallback) {
-				scout.sgvfetch.latest(function(d) {
+				var latest = scout.ds.getLatest('sgv')['date'];
+				scout.sgvfetch.gte(moment(latest).format(), function(d) {
 					console.log("SGVfetch latest on dataUpdate:", d);
 				});
 			}
@@ -1937,6 +1964,7 @@ scout.init = {
 			scout.init.silentWebsocket();
 		} else if (scout.config.fetch_mode == 'websocket') {
 			scout.init.websocket();
+			setTimeout(scout.current.checkManualFetch, scout.config.reload_ms);
 		}
 	},
 
