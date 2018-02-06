@@ -2,11 +2,13 @@ var scout = {
 	config: {
 		urls: {
 			apiRoot: '',
-			domainRoot: '',
 			sgvEntries: 'entries/sgv.json',
 			deviceStatus: 'devicestatus.json',
 			status: 'status.json',
 			treatments: 'treatments.json',
+
+			domainRoot: '',
+			socketio_path: 'socket.io/',
 			socketio_js: 'socket.io/socket.io.js'
 		},
 		sgv: {
@@ -1902,7 +1904,9 @@ scout.uploaderBat = {
 scout.ws = {
 	socket: null,
 	silentInit: function() {
-		scout.ws.socket = io(scout.config.urls.domainRoot);
+		scout.ws.socket = io(scout.config.urls.domainRoot, {
+			path: scout.config.urls.socketio_path
+		});
 		var socket = scout.ws.socket;
 		
 		socket.on('connect', function() {
@@ -1926,7 +1930,9 @@ scout.ws = {
 	},
 	foo: 0,
 	init: function() {
-		scout.ws.socket = io(scout.config.urls.domainRoot);
+		scout.ws.socket = io(scout.config.urls.domainRoot, {
+			path: scout.config.urls.socketio_path
+		});
 		var socket = scout.ws.socket;
 		
 		socket.on('connect', function() {
