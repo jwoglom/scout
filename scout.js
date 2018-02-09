@@ -246,7 +246,24 @@ scout.chartConf = {
 					},
 					align: 'start',
 					anchor: 'start'
-
+				}
+			}, {
+				label: 'Fingerstick',
+				fill: false,
+				backgroundColor: 'rgba(0, 0, 0, 0.5)',
+				borderColor: 'rgba(0, 0, 255, 0.5)',
+				type: 'bubble',
+				tooltips: false,
+				datalabels: {
+					display: true,
+					backgroundColor: 'rgba(0, 0, 255, 0.5)',
+					borderRadius: 4,
+					color: 'white',
+					font: {
+						weight: 'bold'
+					},
+					align: 'start',
+					anchor: 'start'
 				}
 			}]
 		},
@@ -1100,13 +1117,30 @@ scout.sgv = {
 	primaryDSCallback: function() {
 		scout.sgv.primaryCallback({
 			'sgv': scout.ds.getLatestHrs('sgv', 12),
-			'tr': scout.ds.getLatestHrs('tr', 12)
+			'tr': scout.ds.getLatestHrs('tr', 12),
+			'mbg': scout.ds.getLatestHrs('mbg', 12)
 		});
 	},
 
 	callback: function(chart, data) {
 		scout.sgv.sgvCallback(chart, data);
 		scout.sgv.trCallback(chart, data);
+		scout.sgv.mbgCallback(chart, data);
+	},
+
+	mbgCallback: function(chart, fullData) {
+		var data = fullData["mbg"];
+		var dataset = chart.config.data.datasets[3];
+		dataset.data = [];
+		for (var i=0; i<data.length; i++) {
+			var obj = data[i];
+			dataset.data.push({
+				x: moment(obj['mills']),
+				y: obj['mgdl']
+			});
+		}
+		console.log("mbgCallback", data);
+		chart.update();
 	},
 
 	sgvCallback: function(chart, fullData) {
@@ -1176,6 +1210,7 @@ scout.ds = {
 	sgv: [],
 	tr: [],
 	devicestatus: [],
+	mbg: [],
 	/*
 	cals: [],
 	profiles: [],
@@ -1259,6 +1294,7 @@ scout.ds = {
 		}
 		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
 		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
+		if (data["mbgs"]) scout.ds.add("mbg", data["mbgs"]);
 	},
 
 	_typeCallback: function(type) {
@@ -1275,6 +1311,9 @@ scout.ds = {
 		else if (type == 'treatments') {
 			// update graph
 
+			scout.sgv.primaryDSCallback();
+		}
+		else if (type == 'mbg') {
 			scout.sgv.primaryDSCallback();
 		}
 	},
