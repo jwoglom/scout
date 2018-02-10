@@ -1071,6 +1071,13 @@ scout.bg = {
 };
 
 scout.sgv = {
+	currentLength: 12,
+
+	reloadCurrentLength: function(cb) {
+		console.debug("reloadCurrentLength", scout.sgv.currentLength);
+		return scout.fetch.hours(scout.sgv.currentLength, cb);
+	},
+
 	primaryInit: function() {
 		scout.chart.sgv = scout.sgv.init("sgvCanvas");
 		scout.sgv.bindJump();
@@ -1096,18 +1103,19 @@ scout.sgv = {
 	},
 
 	bindJump: function() {
-		function click(cb) {
+		function click(hours) {
 			return function() {
 				this.parentElement.querySelector(".is-active").classList.remove('is-active');
 				this.classList.add('is-active');
-				scout.sgv.currentLength = cb;
-				cb(scout.sgv.primaryCallback);
+				scout.sgv.currentLength = hours;
+				console.debug("set currentLength=", scout.sgv.currentLength);
+				scout.sgv.reloadCurrentLength(scout.sgv.primaryCallback);
 			}
 		}
-		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(scout.fetch.halfday));
-		document.querySelector("#sgv-jump-today").addEventListener('click', click(scout.fetch.today));
-		document.querySelector("#sgv-jump-threeday").addEventListener('click', click(scout.fetch.threeday));
-		document.querySelector("#sgv-jump-week").addEventListener('click', click(scout.fetch.week));
+		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(12));//scout.fetch.halfday
+		document.querySelector("#sgv-jump-today").addEventListener('click', click(24));//scout.fetch.today
+		document.querySelector("#sgv-jump-threeday").addEventListener('click', click(3*24));//scout.fetch.threeday
+		document.querySelector("#sgv-jump-week").addEventListener('click', click(7*24));//scout.fetch.week
 	},
 
 	primaryCallback: function(data) {
@@ -1665,6 +1673,10 @@ scout.fetch.week = function(cb) {
 	return scout.fetch.gte(moment().subtract({hours: 168}).format(), cb);
 }
 
+scout.fetch.hours = function(hours, cb) {
+	return scout.fetch.gte(moment().subtract({hours: hours}).format(), cb);	
+}
+
 scout.device = {
 	fetchStatus: function(count, cb) {
 		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
@@ -2014,10 +2026,9 @@ scout.init = {
 	},
 
 	ajax: function() {
-		scout.sgv.currentLength = scout.fetch.halfday;
-		scout.sgv.currentLength(scout.sgv.primaryCallback);
+		scout.sgv.reloadCurrentLength(scout.sgv.primaryCallback);
 		setInterval(function() {
-			scout.sgv.currentLength(scout.sgv.primaryCallback);
+			scout.sgv.reloadCurrentLength(scout.sgv.primaryCallback);
 		}, scout.config.reload_ms);
 		scout.device.update();
 	},
