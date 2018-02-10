@@ -249,22 +249,10 @@ scout.chartConf = {
 				}
 			}, {
 				label: 'Fingerstick',
+				backgroundColor: 'rgba(0, 0, 255, 0.5)',
+				borderColor: 'rgb(0, 0, 255)',
 				fill: false,
-				backgroundColor: 'rgba(0, 0, 0, 0.5)',
-				borderColor: 'rgba(0, 0, 255, 0.5)',
-				type: 'bubble',
-				tooltips: false,
-				datalabels: {
-					display: true,
-					backgroundColor: 'rgba(0, 0, 255, 0.5)',
-					borderRadius: 4,
-					color: 'white',
-					font: {
-						weight: 'bold'
-					},
-					align: 'start',
-					anchor: 'start'
-				}
+				data: []
 			}]
 		},
 		options: {
@@ -1138,8 +1126,13 @@ scout.sgv = {
 
 	mbgCallback: function(chart, fullData) {
 		var data = fullData["mbg"];
+		if (!data) {
+			console.debug("mbgCallback no data", fullData);
+			return;
+		}
 		var dataset = chart.config.data.datasets[3];
 		dataset.data = [];
+		/*
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
 			dataset.data.push({
@@ -1148,6 +1141,7 @@ scout.sgv = {
 			});
 		}
 		console.log("mbgCallback", data);
+		*/
 		chart.update();
 	},
 
@@ -1160,6 +1154,13 @@ scout.sgv = {
 		if (chart.options.usePointBackgroundColor) dataset.pointBackgroundColor = [];
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
+
+			if (obj['sgv'] > 400) {
+				console.info('SGV value', obj, 'ignored');
+				continue;
+			}
+
+
 			dataset.data.push({
 				x: moment(obj['date']),
 				y: obj['sgv']
@@ -1228,15 +1229,25 @@ scout.ds = {
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
-			var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
-			if (fl.length == 0) {
-				cat.push(data[i]);
-				adds++;
-			} else if (fl.length == 1 && fl[0]['converted']) {
-				scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
-				scout.ds[type].push(data[i]);
-				console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
-				adds++;
+			if (type == 'sgv') {
+				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
+				if (fl.length == 0) {
+					cat.push(data[i]);
+					adds++;
+				} else if (fl.length == 1 && fl[0]['converted']) {
+					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
+					scout.ds[type].push(data[i]);
+					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
+					adds++;
+				}
+			} else {
+				var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
+				if (fl.length == 0) {
+					cat.push(data[i]);
+					adds++;
+				} else if (fl.length == 1 && fl[0]['converted']) {
+					console.error('unimplemented _add');
+				}
 			}
 		}
 		console.debug("ds.add["+type+"] "+adds+"/"+data.length);
