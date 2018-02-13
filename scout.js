@@ -9,7 +9,7 @@ var scout = {
 
 			domainRoot: '',
 			socketio_path: '/socket.io/',
-			socketio_js: 'socket.io/socket.io.js'
+			socketio_js: 'socket.io.js'
 		},
 		sgv: {
 			target_min: 80,
@@ -2047,14 +2047,14 @@ scout.init = {
 	websocket: function() {
 		var scr = document.createElement('script');
 		scr.type = 'text/javascript';
-		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_js;
+		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_path + scout.config.urls.socketio_js;
 		scr.onload = scout.ws.init;
 		document.body.appendChild(scr);
 	},
 	silentWebsocket: function() {
 		var scr = document.createElement('script');
 		scr.type = 'text/javascript';
-		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_js;
+		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_path + scout.config.urls.socketio_js;
 		scr.onload = scout.ws.silentInit;
 		document.body.appendChild(scr);
 	}
