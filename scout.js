@@ -35,19 +35,19 @@ var scout = {
 scout.util = {
 	colorForSgv: function(sgv) {
 		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 0, 0)';
-		if (sgv > scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
+		if (sgv >= scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
 		return 'rgb(0, 255, 0)';
 	},
 
 	bgColorForSgv: function(sgv) {
 		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 127, 127)';
-		if (sgv > scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
+		if (sgv >= scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
 		return 'rgb(0, 255, 0)';
 	},
 
 	updateInRange: function(obj, sgv) {
 		if (sgv < scout.config.sgv.target_min) obj.inRange[1]++;
-		else if (sgv > scout.config.sgv.target_max) obj.inRange[3]++;
+		else if (sgv >= scout.config.sgv.target_max) obj.inRange[3]++;
 		else obj.inRange[2]++;
 		if (sgv > obj.highBg) obj.highBg = sgv;
 		if (sgv < obj.lowBg) obj.lowBg = sgv;
@@ -1504,7 +1504,7 @@ scout.current = {
 		return (
 			cur['noise'] > 1 || 
 			cur['sgv'] < scout.config.sgv.target_min || 
-			cur['sgv'] > scout.config.sgv.target_max ||
+			cur['sgv'] >= scout.config.sgv.target_max ||
 			Math.abs(cur['delta']) >= scout.config.sgv.spike_delta
 		) && (cur["_id"] != scout.current.nflast["_id"]);
 	},
