@@ -17,6 +17,9 @@ var scout = {
 			target_max: 200,
 			spike_delta: 12
 		},
+		mbg: {
+			radius: 5
+		},
 		old_minutes: 15,
 		missed_minutes: 8,
 		pct_split_mins: 15,
@@ -247,12 +250,14 @@ scout.chartConf = {
 					},
 					align: 'start',
 					anchor: 'start'
-				}
+				},
+				data: []
 			}, {
 				label: 'Fingerstick',
-				backgroundColor: 'rgba(0, 0, 255, 0.5)',
-				borderColor: 'rgb(0, 0, 255)',
 				fill: false,
+				backgroundColor: 'rgba(0, 0, 255, 0.5)',
+				borderColor: 'rgb(0, 0, 0)',
+				type: 'bubble',
 				data: []
 			}]
 		},
@@ -265,7 +270,7 @@ scout.chartConf = {
 	            text: "Glucose"
 	        },
 	        tooltips: {
-	        	mode: 'index',
+	        	mode: 'nearest',
 	        	intersect: false
 	        },
 			scales: {
@@ -1135,6 +1140,7 @@ scout.sgv = {
 			console.debug("mbgCallback no data", fullData);
 			return;
 		}
+		// Fingerstick
 		var dataset = chart.config.data.datasets[3];
 		dataset.data = [];
 		
@@ -1147,7 +1153,8 @@ scout.sgv = {
 			if (hrs <= scout.sgv.currentLength) {
 				dataset.data.push({
 					x: mom,
-					y: obj['mbg']
+					y: obj['mbg'],
+					r: scout.config.mbg.radius
 				});
 				console.info('added graph MBG', obj, hrs);
 			} else {
