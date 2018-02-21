@@ -1432,13 +1432,14 @@ scout.current = {
 	},
 
 	updateFavicon: function(cur, alternate) {
+		console.debug("favicon update", alternate ? "alternate" : "non-alternate", new Date());
 		scout.util.modifyFavicon(scout.current.buildBgIcon(cur));
 		if (alternate) {
 			setTimeout(function() {
-				console.debug("favicon tick");
+				console.debug("favicon tick", new Date());
 				scout.util.modifyFavicon(scout.current.buildBgIcon(cur, true));
 				setTimeout(function() {
-					console.debug("favicon tock");
+					console.debug("favicon tock", new Date());
 					scout.util.modifyFavicon(scout.current.buildBgIcon(cur, false));
 				}, scout.config.favicon_alternate_ms);
 			}, scout.config.favicon_alternate_ms);
@@ -1630,6 +1631,10 @@ scout.current = {
 	checkManualFetch: function() {
 		if (scout.current.needManualFetch()) {
 			scout.current.manualFetch();
+		} else {
+			// update favicon for old data
+			console.debug("manualFetch favicon update");
+			scout.current.updateFavicon(scout.current.currentEntry, false);
 		}
 	}
 };
