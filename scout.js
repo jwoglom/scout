@@ -1112,9 +1112,9 @@ scout.sgv = {
 
 	primaryDSCallback: function() {
 		scout.sgv.primaryCallback({
-			'sgv': scout.ds.getLatestHrs('sgv', 12),
-			'tr': scout.ds.getLatestHrs('tr', 12),
-			'mbg': scout.ds.getLatestHrs('mbg', 12)
+			'sgv': scout.ds.getLatestHrs('sgv', scout.sgv.currentLength),
+			'tr': scout.ds.getLatestHrs('tr', scout.sgv.currentLength),
+			'mbg': scout.ds.getLatestHrs('mbg', scout.sgv.currentLength)
 		});
 	},
 
@@ -1132,16 +1132,25 @@ scout.sgv = {
 		}
 		var dataset = chart.config.data.datasets[3];
 		dataset.data = [];
-		/*
+		
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
-			dataset.data.push({
-				x: moment(obj['mills']),
-				y: obj['mgdl']
-			});
+			var mom = moment(obj['mills']);
+
+			// ensure in the correct time period
+			var hrs = moment.duration(moment().diff(mom)).asHours();
+			if (mom <= scout.sgv.currentLength) {
+				dataset.data.push({
+					x: mom,
+					y: obj['mgdl']
+				});
+				console.info('added graph MBG', obj, hrs);
+			} else {
+				console.info('ignored graph MBG', obj, hrs);
+			}
 		}
 		console.log("mbgCallback", data);
-		*/
+		
 		chart.update();
 	},
 
