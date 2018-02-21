@@ -3,6 +3,7 @@ var scout = {
 		urls: {
 			apiRoot: '',
 			sgvEntries: 'entries/sgv.json',
+			mbgEntries: 'entries/mbg.json',
 			deviceStatus: 'devicestatus.json',
 			status: 'status.json',
 			treatments: 'treatments.json',
@@ -1061,6 +1062,10 @@ scout.bg = {
 scout.sgv = {
 	currentLength: 12,
 
+	reload: function() {
+		scout.sgv.reloadCurrentLength(scout.sgv.primaryDSCallback);
+	},
+
 	reloadCurrentLength: function(cb) {
 		console.debug("reloadCurrentLength", scout.sgv.currentLength);
 		return scout.fetch.hours(scout.sgv.currentLength, cb);
@@ -1097,7 +1102,7 @@ scout.sgv = {
 				this.classList.add('is-active');
 				scout.sgv.currentLength = hours;
 				console.debug("set currentLength=", scout.sgv.currentLength);
-				scout.sgv.reloadCurrentLength(scout.sgv.primaryCallback);
+				scout.sgv.reload();
 			}
 		}
 		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(12));//scout.fetch.halfday
@@ -1135,14 +1140,14 @@ scout.sgv = {
 		
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
-			var mom = moment(obj['mills']);
+			var mom = moment(obj['date']);
 
 			// ensure in the correct time period
 			var hrs = moment.duration(moment().diff(mom)).asHours();
-			if (mom <= scout.sgv.currentLength) {
+			if (hrs <= scout.sgv.currentLength) {
 				dataset.data.push({
 					x: mom,
-					y: obj['mgdl']
+					y: obj['mbg']
 				});
 				console.info('added graph MBG', obj, hrs);
 			} else {
@@ -1238,7 +1243,7 @@ scout.ds = {
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
-			if (type == 'sgv') {
+			if (type == 'sgv' || type == 'mbg') {
 				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
 				if (fl.length == 0) {
 					cat.push(data[i]);
@@ -1273,7 +1278,6 @@ scout.ds = {
 	},
 
 	_convertSgv: function(sgv, prev) {
-		// TODO: calculate delta
 		return {
 			'date': sgv['mills'],
 			'dateString': moment(sgv['millis']).format(),
@@ -1290,6 +1294,19 @@ scout.ds = {
 			'_id': sgv['mills'],
 			'converted': true
 		};
+	},
+
+	_convertMbg: function(mbg) {
+		return {
+			'date': mbg['mills'],
+			'dateString': moment(mbg['millis']).format(),
+			'sysTime': moment(mbg['millis']).format(),
+			'type': 'mbg',
+			'device': mbg['device'],
+			'mbg': mbg['mgdl'],
+			'_id': mbg['mills'],
+			'converted': true
+		}
 	},
 
 	_convertSgvs: function(sgvs) {
@@ -1309,6 +1326,16 @@ scout.ds = {
 		return upd;
 	},
 
+	_convertMbgs: function(mbgs) {
+		console.debug("convertMbgs:", mbgs);
+		var upd = [];
+		for (var i=0; i<mbgs.length; i++) {
+			upd[i] = scout.ds._convertMbg(mbgs[i]);
+		}
+		console.debug("convertMbgs done:", upd);
+		return upd;
+	},
+
 	// websocket
 	deltaAdd: function(data, silentSgv) {
 		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
@@ -1322,7 +1349,9 @@ scout.ds = {
 		}
 		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
 		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
-		if (data["mbgs"]) scout.ds.add("mbg", data["mbgs"]);
+		if (data["mbgs"]) {
+			scout.ds.add("mbg", scout.ds._convertMbgs(data["mbgs"]));
+		}
 	},
 
 	_typeCallback: function(type) {
@@ -1629,7 +1658,7 @@ scout.current = {
 		var trLatest = scout.ds.getLatest('tr');
 		if (trLatest) latest.push(moment(trLatest['created_at']));
 		var mbgLatest = scout.ds.getLatest('mbg');
-		if (mbgLatest) latest.push(moment(mbgLatest['millis']));
+		if (mbgLatest) latest.push(moment(mbgLatest['date']));
 
 		var minLatest = Math.min.apply(null, latest);
 
@@ -1665,6 +1694,21 @@ scout.sgvfetch = function(args, cb) {
 	});
 }
 
+scout.mbgfetch = function(args, cb) {
+	var parsed = "";
+	if (args.count) parsed += "&count="+args.count;
+	if (args.date) {
+		if (args.date.gte) parsed += "&find[dateString][$gte]=" + args.date.gte;
+		if (args.date.lte) parsed += "&find[dateString][$lte]=" + args.date.lte;
+	}
+	parsed += "&ts=" + (+new Date());
+	superagent.get(scout.config.urls.apiRoot + scout.config.urls.mbgEntries+"?"+parsed, function(resp) {
+		var data = JSON.parse(resp.text);
+		scout.ds.add("mbg", data);
+		cb(data);
+	});
+}
+
 scout.sgvfetch.gte = function(gte, cb) {
 	return scout.sgvfetch({"date": {"gte": gte}, "count": 9999}, cb);
 }
@@ -1672,9 +1716,12 @@ scout.sgvfetch.gte = function(gte, cb) {
 scout.fetch = function(args, cb) {
 	scout.sgvfetch(args, function(sgv) {
 		scout.trfetch(args, function(tr) {
-			cb({
-				"sgv": sgv,
-				"tr": tr
+			scout.mbgfetch(args, function(mbg) {
+				cb({
+					"sgv": sgv,
+					"tr": tr,
+					"mbg": mbg
+				});
 			});
 		});
 	});
@@ -2062,9 +2109,9 @@ scout.init = {
 	},
 
 	ajax: function() {
-		scout.sgv.reloadCurrentLength(scout.sgv.primaryCallback);
+		scout.sgv.reload();
 		setInterval(function() {
-			scout.sgv.reloadCurrentLength(scout.sgv.primaryCallback);
+			scout.sgv.reload();
 		}, scout.config.reload_ms);
 		scout.device.update();
 	},
