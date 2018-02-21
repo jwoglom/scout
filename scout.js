@@ -1621,9 +1621,20 @@ scout.current = {
 	},
 
 	manualFetch: function() {
+		// TODO: separate out in calls for scout.fetch?
 		scout.current.lastAttemptTime = new Date();
-		var latest = scout.ds.getLatest('sgv')['date'];
-		scout.sgvfetch.gte(moment(latest).format(), function(d) {
+		var latest = [];
+		var sgvLatest = scout.ds.getLatest('sgv');
+		if (sgvLatest) latest.push(moment(sgvLatest['date']));
+		var trLatest = scout.ds.getLatest('tr');
+		if (trLatest) latest.push(moment(trLatest['created_at']));
+		var mbgLatest = scout.ds.getLatest('mbg');
+		if (mbgLatest) latest.push(moment(mbgLatest['millis']));
+
+		var minLatest = Math.min.apply(null, latest);
+
+		console.debug("latest", latest, minLatest);
+		scout.fetch.gte(moment(minLatest).format(), function(d) {
 			console.log("manualFetch:", d);
 		});
 	},
