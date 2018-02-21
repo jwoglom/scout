@@ -1927,7 +1927,7 @@ scout.sensorAge = {
 		var created = moment(latest['created_at']);
 		var avgAge = scout.sensorAge.avgAgeHours(data);
 		return {
-			"sensor_last_inserted": created.format(scout.config.timeFormat+" a"),
+			"sensor_last_inserted": created.format("MM/DD/YYYY hh:mm a"),
 			"current_sensor_age": scout.util.fmtDuration(moment().diff(created)),
 			"avg_sensor_age": scout.util.fmtDuration(moment.duration({hours: avgAge}))
 		}
