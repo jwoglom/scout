@@ -85,7 +85,11 @@
 				<section class="in_range_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
 						<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
 							<div class="mdl-card__supporting-text">
-								<h4>Date or Date Range:</h4>
+								<h4 style="margin-bottom: 15px">Date or Date Range:</h4>
+								<label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="in_range_show_bolus" style="margin-bottom: 5px; margin-left: 10px">
+									<input type="checkbox" id="in_range_show_bolus" name="in_range_show_bolus" class="mdl-checkbox__input">
+									<span class="mdl-checkbox__label">Show Bolus</span>
+								</label>
 								<form onsubmit="return false" id="in_range_single_form">
 									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
 									    <input class="mdl-textfield__input" type="date" id="in_range_single" placeholder="">

@@ -718,13 +718,17 @@ scout.inRange = {
 	},
 
 	addDay: function(date) {
+		var showBolus = document.querySelector("#in_range_show_bolus").checked;
 		scout.fetch.eq(date, function(data) {
-			scout.inRange.embedSingle(data, [date]);
+			if (!showBolus) data["tr"] = [];
+			scout.inRange.embedSingle(data, [date], showBolus);
 		});
 	},
 
 	addRange: function(st_date, end_date) {
+		var showBolus = document.querySelector("#in_range_show_bolus").checked;
 		scout.fetch.range(st_date, end_date, function(data) {
+			if (!showBolus) data["tr"] = [];
 			scout.inRange.embedSingle(data, [st_date, end_date]);
 		});
 	},
