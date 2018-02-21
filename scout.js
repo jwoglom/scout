@@ -1494,57 +1494,62 @@ scout.current = {
 		if (noise.length > 1) arrow = noise.substring(0, 1);
 		var canvas = document.getElementById("favicon_canvas");
 		
+		var bs = canvas.width;
+		var n = function(i) {
+			return (i/64) * bs;
+		};
+
 		with (canvas.getContext("2d")) {
 			clearRect(0, 0, canvas.width, canvas.height);
 			if (scout.util.isOldData(cur['date'])) {
 				var tline = "old";
 				var tdiff = scout.util.getShortTimeDiff(cur['date']);
 				fillStyle = "rgb(255,255,255)";
-				fillRect(0, 0, 64, 64);
+				fillRect(0, 0, n(64), n(64));
 
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
-				font = "30px Arial";
-				fillText(tdiff, 32, 30);
+				font = n(30)+"px Arial";
+				fillText(tdiff, n(32), n(30));
 
-				font = "40px Arial";
-				fillText(tline, 32, 63);
+				font = n(40)+"px Arial";
+				fillText(tline, n(32), n(63));
 			} else if (scout.util.isMissedData(cur['date'])) {
 				var tdiff = scout.util.getShortTimeDiff(cur['date']);
 				fillStyle = scout.util.bgColorForSgv(sgv);
 				fillStyle = "rgb(255,255,255)";
-				fillRect(0, 0, 64, 64);
+				fillRect(0, 0, n(64), n(64));
 
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
-				font = "30px Arial";
-				fillText(tdiff, 32, 30);
+				font = n(30)+"px Arial";
+				fillText(tdiff, n(32), n(30));
 
-				font = "40px Arial";
-				fillText(sgv, 32, 63);
+				font = n(40)+"px Arial";
+				fillText(sgv, n(32), n(63));
 			} else {
 				fillStyle = scout.util.bgColorForSgv(sgv);
-				fillRect(0, 0, 64, 64);
+				fillRect(0, 0, n(64), n(64));
 
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
 				if (show_delta) {
-					font = "30px Arial";
+					font = n(30)+"px Arial";
 					if (delta.length > 4 && delta.indexOf(".") != -1) {
 						delta = delta.split(".")[0];
 					}
-					fillText(delta, 32, 30);
+					fillText(delta, n(32), n(30));
 					textAlign = "center";
 				} else {
-					font = "bold 40px Arial";
-					fillText(arrow, 32, 30);
+					font = "bold "+n(40)+"px Arial";
+					fillText(arrow, n(32), n(30));
 				}
 
-				font = "40px Arial";
-				fillText(sgv, 32, 63);
+				font = n(40)+"px Arial";
+				fillText(sgv, n(32), n(63));
 			}
 		}
 		return canvas.toDataURL("image/png");
