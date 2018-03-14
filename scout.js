@@ -2120,7 +2120,7 @@ scout.init = {
 			scout.init.silentWebsocket();
 		} else if (scout.config.fetch_mode == 'websocket') {
 			scout.init.websocket();
-			setTimeout(scout.current.checkManualFetch, scout.config.reload_ms);
+			setInterval(scout.current.checkManualFetch, scout.config.reload_ms);
 		}
 	},
 
