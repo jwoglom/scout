@@ -695,7 +695,29 @@ scout.tpl = {
 	}
 }
 
+scout.spinner = {
+	spinners: {
+		'inRange': '#in_range_spinner'
+	},
+	
+	get: function(sp) {
+		return document.querySelector(scout.spinner.spinners[sp]);
+	},
+
+	start: function(sp) {
+		scout.spinner.get(sp).classList.remove('hidden');
+	},
+
+	finish: function(sp) {
+		scout.spinner.get(sp).classList.add('hidden');
+	}
+}
+
+/*
+ * In Range module
+ */
 scout.inRange = {
+	spinner: null,
 	init: function() {
 		var today = moment().format("YYYY-MM-DD");
 		var lastwk = moment().subtract({days: 7}).format("YYYY-MM-DD");
@@ -706,12 +728,15 @@ scout.inRange = {
 	},
 
 	submitFormSingle: function() {
+		scout.spinner.start('inRange');
 		var date = document.querySelector("#in_range_single").value;
 		scout.inRange.addDay(moment(date).format());
+	
 	},
 
 
 	submitFormRange: function() {
+		scout.spinner.start('inRange');
 		var date1 = moment(document.querySelector("#in_range_start").value);
 		var date2 = moment(document.querySelector("#in_range_end").value);
 		scout.inRange.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format());
@@ -747,6 +772,8 @@ scout.inRange = {
 		outer.appendChild(newDiv.children[0]);
 		scout.bg.load("in_range_canvas_"+id, data);
 		scout.sgv.load("in_range_sgv_canvas_"+id, fullData, null, {tooltips: true, thinLines: true});
+
+		scout.spinner.finish('inRange');
 	},
 
 	dataDict: function(data, id, dates) {

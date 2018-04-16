@@ -41,7 +41,9 @@
 				<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
 					<div class="mdl-card mdl-cell mdl-cell--4-col">
 						<h2 class="current-header">
-							<span id="current_sgv"></span>
+							<span id="current_sgv">
+								<div class="mdl-spinner mdl-js-spinner is-active center-spinner"></div>
+							</span>
 						</h2>
 						<h3 class="current-subhead">
 							<span id="current_noise"></span>
@@ -120,7 +122,7 @@
 								</form>
 							</div>
 						</div>
-						
+						<div class="mdl-spinner mdl-js-spinner is-active center-spinner hidden" id="in_range_spinner"></div>
 	          		</section>
 				<script type="text/template" id="in_range_tpl">
 					<section class="in_range_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="in_range_section_{id}">
@@ -547,6 +549,9 @@
  	height: 300px;
  }
 
+ .center-spinner {
+ 	margin: 50px auto;
+ }
 </style>
 </body>
 </html>
