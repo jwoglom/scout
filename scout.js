@@ -695,9 +695,14 @@ scout.tpl = {
 	}
 }
 
+/*
+ * Wrapper around spinners
+ */
 scout.spinner = {
 	spinners: {
-		'inRange': '#in_range_spinner'
+		'inRange': '#in_range_spinner',
+		'hourlyPct': '#hourly_pct_spinner',
+		'uploaderBat': '#uploader_bat_spinner'
 	},
 	
 	get: function(sp) {
@@ -811,6 +816,7 @@ scout.hourlyPct = {
 	},
 
 	submitForm: function() {
+		scout.spinner.start('hourlyPct');
 		var date1 = moment(document.querySelector("#hourly_pct_start").value);
 		var date2 = moment(document.querySelector("#hourly_pct_end").value);
 		scout.hourlyPct.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format());
@@ -840,6 +846,8 @@ scout.hourlyPct = {
 		outer.appendChild(newDiv.children[0]);
 		//scout.sgv.load("hourly_pct_canvas_"+id, data, null, {tooltips: true, thinLines: true});
 		scout.pct.load("hourly_pct_canvas_"+id, fullData);
+
+		scout.spinner.finish('hourlyPct');
 	},
 
 	dataDict: function(data, id, dates) {
@@ -2204,10 +2212,12 @@ scout.uploaderBat = {
 	},
 
 	refreshGraph: function() {
+		scout.spinner.start('uploaderBat');
 		scout.device.fetchStatus(scout.uploaderBat.getReadingsCount(), function(data) {
 			console.log("uploaderBat", data);
 			scout.uploaderBat.updateCanvas(data);
 			scout.uploaderBat.currentStatus(data);
+			scout.spinner.finish('uploaderBat');
 		});
 	}
 };
