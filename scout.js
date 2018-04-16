@@ -1240,6 +1240,11 @@ scout.sgv = {
 	}
 };
 
+/*
+ * The data storage module. This provides a data store of glucose/insulin/sensor
+ * information that can be centrally read, and enforces deduplication and updates
+ * websocket-obtained data to full data when a manual fetch is called.
+ */
 scout.ds = {
 	sgv: [],
 	tr: [],
@@ -1250,6 +1255,12 @@ scout.ds = {
 	profiles: [],
 	mbgs: []*/
 
+	/*
+	 * Add to scout.ds, without duplicating data.
+	 * If a sgv or mbg value, ensure there's not a duplicate by checking the date,
+	 * and if the value was 'converted' from websocket data, then update/replace
+	 * the data. Otherwise, ensure no duplication by checking the _id.
+	 */
 	_add: function(type, data) {
 		var cat = scout.ds[type];
 		var adds = 0;
@@ -1279,7 +1290,9 @@ scout.ds = {
 		return adds;
 	},
 
-	// API poll
+	/*
+	 * The function that should be called externally to add data to ds.
+	 */
 	add: function(type, data) {
 		var adds = scout.ds._add(type, data);
 		if (adds > 0) {
@@ -1288,6 +1301,11 @@ scout.ds = {
 		}
 	},
 
+	/*
+	 * Convert websocket sgv data to a full sgv object.
+	 * Because websocket data does not include a delta, calculate a mock delta
+	 * from the previous sgv value.
+	 */
 	_convertSgv: function(sgv, prev) {
 		return {
 			'date': sgv['mills'],
@@ -1307,6 +1325,9 @@ scout.ds = {
 		};
 	},
 
+	/*
+	 * Convert websocket mbg data to a full mbg object.
+	 */
 	_convertMbg: function(mbg) {
 		return {
 			'date': mbg['mills'],
@@ -1320,6 +1341,9 @@ scout.ds = {
 		}
 	},
 
+	/*
+	 * Convert multiple sgv's
+	 */
 	_convertSgvs: function(sgvs) {
 		console.debug("convertSgvs: ", sgvs);
 		var upd = [];
@@ -1337,6 +1361,9 @@ scout.ds = {
 		return upd;
 	},
 
+	/*
+	 * Convert multiple mbg's
+	 */
 	_convertMbgs: function(mbgs) {
 		console.debug("convertMbgs:", mbgs);
 		var upd = [];
@@ -1347,6 +1374,11 @@ scout.ds = {
 		return upd;
 	},
 
+	/*
+	 * Convert the glucose information in treatment data to mbg's.
+	 * requireEventType should be set when running on websocket data,
+	 * because it secretly adds a mgdl value of the current SGV.
+	 */
 	_convertMbgsFromTreatments: function(trs, requireEventType) {
 		console.debug("convertMbgsFromTreatments:", trs);
 		var upd = [];
@@ -1360,7 +1392,12 @@ scout.ds = {
 		return upd;
 	},
 
-	// websocket
+	/*
+	 * Add websocket data, and update from this delta.
+	 * silentSgv should be set when the current SGV/graph data shouldn't
+	 * be updated. (e.x., if multiple pieces of data are being added and
+	 * this is going to be done all at once afterwords.)
+	 */
 	deltaAdd: function(data, silentSgv) {
 		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
 		console.debug("ds.deltaAdd:", data);
@@ -1384,6 +1421,12 @@ scout.ds = {
 		}
 	},
 
+	/*
+	 * Callbacks for when certain types of data have been updated.
+	 * sgv data updates the latest SGV value, and the graph
+	 * deviceStatus updates the latest status display
+	 * treatment and mbg data updates the graph
+	 */
 	_typeCallback: function(type) {
 		if (type == 'sgv') {
 			scout.current.loadSgv(scout.ds.getLatest('sgv'));
@@ -1421,12 +1464,19 @@ scout.ds = {
 		if (type == 'tr') return 'created_at';
 	},
 
+	/*
+	 * Get data of type within the last `hrs` hours.
+	 */
 	getLatestHrs: function(type, hrs) {
 		return scout.ds.filter(type, function(e) {
 			return moment.duration(moment().diff(e[scout.ds._dateCol(type)])).asHours() <= hrs;
 		});
 	},
 
+	/*
+	 * Get the latest point of this type. Newest data should be at the
+	 * end of the array.
+	 */
 	getLatest: function(type) {
 		var typ = scout.ds[type];
 		return typ[typ.length-1];
