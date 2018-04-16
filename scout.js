@@ -1483,9 +1483,16 @@ scout.ds = {
 	}
 };
 
+/*
+ * Module for the current information shown above the graph on the main page.
+ */
 scout.current = {
 	currentEntry: null,
 	lastAttemptTime: null,
+	/*
+	 * Processes the latest SGV data point. Determines when the information is old,
+	 * whether the point should trigger a browser notification, and updates the favicon.
+	 */
 	loadSgv: function(cur) {
 		if (!cur) return;
 		var new_data = (scout.current.currentEntry == null || scout.current.currentEntry['date'] != cur['date']);
@@ -1540,6 +1547,10 @@ scout.current = {
 		scout.current.notify(cur);
 	},
 
+	/*
+	 * Updates the favicon using the current data point.
+	 * With alternate, will flash the arrow/delta for favicon_alternate_ms
+	 */
 	updateFavicon: function(cur, alternate) {
 		console.debug("favicon update", alternate ? "alternate" : "non-alternate", new Date());
 		scout.util.modifyFavicon(scout.current.buildBgIcon(cur));
@@ -1555,6 +1566,10 @@ scout.current = {
 		}
 	},
 
+	/*
+	 * Builds the favicon using the current data point, by drawing to the hidden
+	 * canvas and returning the png data URL.
+	 */
 	buildBgIcon: function(cur, show_delta) {
 		var sgv = parseInt(cur['sgv']);
 		var delta = scout.util.fmtDelta(cur['delta']);
@@ -1624,6 +1639,10 @@ scout.current = {
 		return canvas.toDataURL("image/png");
 	},
 
+	/*
+	 * Criteria for creating a browser notification.
+	 * Additional notification logic in shouldNotifyOldData for old data notification.
+	 */
 	shouldNotify: function(cur) {
 		return (
 			cur['noise'] > 1 || 
@@ -1636,6 +1655,10 @@ scout.current = {
 	nfobj: null,
 	nflast: {"_id": null},
 
+	/*
+	 * Creates a browser notification. Decides whether this should be done by
+	 * calling shouldNotify. If force, do so whether you should notify or not.
+	 */
 	notify: function(cur, force) {
 		if (!("Notification" in window)) {
 			console.error("No Notification object");
@@ -1681,6 +1704,9 @@ scout.current = {
 		}
 	},
 
+	/*
+	 * Notifies because of old data. Only called when this is to occur; doesn't check precondition.
+	 */
 	notifyOldData: function(cur) {
 		if (!("Notification" in window)) {
 			console.error("No Notification object");
@@ -1723,17 +1749,27 @@ scout.current = {
 		}
 	},
 
+	/*
+	 * Whether data is old and a notification should be rendered.
+	 */
 	shouldNotifyOldData: function(cur) {
 		var reload = 60/parseInt(scout.config.reload_ms/1000);
 		return parseInt(scout.util.minsAgo(cur['date'])*reload) % (scout.config.notifyOldData_mins*reload) < 1;
 	},
 
+	/*
+	 * Whether a manual fetch is needed if haven't gotten data in missed_minutes.
+	 */
 	needManualFetch: function() {
 		var minDiff = moment.duration(moment().diff(scout.current.lastAttemptTime)).asMinutes();
 		if (minDiff > scout.config.missed_minutes) console.log("manualFetch diff:", minDiff);
 		return minDiff > scout.config.missed_minutes;
 	},
 
+	/*
+	 * Performs a manual fetch by determining when the last data was received,
+	 * and fetching for data after that point.
+	 */
 	manualFetch: function() {
 		// TODO: separate out in calls for scout.fetch?
 		scout.current.lastAttemptTime = new Date();
@@ -1753,6 +1789,9 @@ scout.current = {
 		});
 	},
 
+	/*
+	 * Check for whether a manual fetch needs to occur.
+	 */
 	checkManualFetch: function() {
 		if (scout.current.needManualFetch()) {
 			scout.current.manualFetch();
@@ -1764,6 +1803,9 @@ scout.current = {
 	}
 };
 
+/*
+ * Fetch for SGV data.
+ */
 scout.sgvfetch = function(args, cb) {
 	var parsed = "";
 	if (args.count) parsed += "&count="+args.count;
@@ -1779,6 +1821,9 @@ scout.sgvfetch = function(args, cb) {
 	});
 }
 
+/*
+ * Fetch for MBG data.
+ */
 scout.mbgfetch = function(args, cb) {
 	var parsed = "";
 	if (args.count) parsed += "&count="+args.count;
@@ -1798,6 +1843,9 @@ scout.sgvfetch.gte = function(gte, cb) {
 	return scout.sgvfetch({"date": {"gte": gte}, "count": 9999}, cb);
 }
 
+/*
+ * Fetch for SGV, TR, and MBG data.
+ */
 scout.fetch = function(args, cb) {
 	scout.sgvfetch(args, function(sgv) {
 		scout.trfetch(args, function(tr) {
@@ -1845,6 +1893,9 @@ scout.fetch.hours = function(hours, cb) {
 	return scout.fetch.gte(moment().subtract({hours: hours}).format(), cb);	
 }
 
+/*
+ * Module for status info for the current device.
+ */
 scout.device = {
 	fetchStatus: function(count, cb) {
 		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
@@ -1888,6 +1939,9 @@ scout.device = {
 	}
 };
 
+/*
+ * Fetch for treatment data.
+ */
 scout.trfetch = function(args, cb) {
 	var parsed = "";
 	if (args.count) parsed += "&count="+args.count;
@@ -1932,7 +1986,9 @@ scout.trfetch.bgcheck.range = function(st, end, cb) {
 	return scout.trfetch.bgcheck({date: {"gte": st, "lte": end}, count: 99999}, cb);
 }
 
-// Sensor Age Bar chart
+/*
+ * Module for Sensor Age Bar chart
+ */
 scout.sab = {
 	init: function(canvasId, extraConf) {
 		var sabCtx = document.getElementById(canvasId).getContext("2d");
@@ -1977,6 +2033,9 @@ scout.sab = {
 	}
 };
 
+/*
+ * Module for calculating sensor age
+ */
 scout.sensorAge = {
 	init: function() {
 		scout.trfetch({
@@ -2033,7 +2092,9 @@ scout.sensorAge = {
 	}
 };
 
-// Battery status chart
+/*
+ * Module for Battery status chart
+ */
 scout.bat = {
 	init: function(canvasId, extraConf) {
 		var batCtx = document.getElementById(canvasId).getContext("2d");
@@ -2071,6 +2132,9 @@ scout.bat = {
 	}
 };
 
+/*
+ * Module for getting uploader battery information
+ */
 scout.uploaderBat = {
 	init: function() {
 		scout.uploaderBat.refreshGraph();
@@ -2121,6 +2185,9 @@ scout.uploaderBat = {
 	}
 };
 
+/*
+ * Websocket initialization
+ */
 scout.ws = {
 	socket: null,
 	silentInit: function() {
@@ -2183,6 +2250,9 @@ scout.ws = {
 	}
 };
 
+/*
+ * Initialization
+ */
 scout.init = {
 	fetch: function() {
 		if (scout.config.fetch_mode == 'ajax') {
@@ -2218,6 +2288,9 @@ scout.init = {
 	}
 };
 
+/*
+ * Chart.js extensions
+ */
 Chart.defaults.global.plugins.datalabels.display = false;
 Chart.defaults.global.animation.duration = 250;
 Chart.pluginService.register({
