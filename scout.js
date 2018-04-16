@@ -1347,6 +1347,19 @@ scout.ds = {
 		return upd;
 	},
 
+	_convertMbgsFromTreatments: function(trs, requireEventType) {
+		console.debug("convertMbgsFromTreatments:", trs);
+		var upd = [];
+		for (var i=0; i<trs.length; i++) {
+			var eventTypeCheck = requireEventType ? (trs[i]['eventType'] == 'BG Check') : true;
+			if (eventTypeCheck && trs[i]['mgdl'] > 0) {
+				upd.push(scout.ds._convertMbg(trs[i]));
+			}
+		}
+		console.debug("convertMbgsFromTreatments done:", upd);
+		return upd;
+	},
+
 	// websocket
 	deltaAdd: function(data, silentSgv) {
 		// TODO: optimize typeCallback multiple-run (at least with re-rendering graph)
@@ -1359,7 +1372,13 @@ scout.ds = {
 			}
 		}
 		if (data["devicestatus"]) scout.ds.add("devicestatus", data["devicestatus"]);
-		if (data["treatments"]) scout.ds.add("tr", data["treatments"]);
+		if (data["treatments"]) {
+			scout.ds.add("tr", data["treatments"]);
+			// websocket data from nightscout adds 'mgdl' to non-BG Check fields
+			// that is just the approximate current SGV value, so we don't want
+			// to interpret them as MBGs.
+			scout.ds.add("mbg", scout.ds._convertMbgsFromTreatments(data["treatments"], true));
+		}
 		if (data["mbgs"]) {
 			scout.ds.add("mbg", scout.ds._convertMbgs(data["mbgs"]));
 		}
@@ -1832,6 +1851,7 @@ scout.trfetch = function(args, cb) {
 	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		scout.ds.add("tr", data);
+		scout.ds.add("mbg", scout.ds._convertMbgsFromTreatments(data, false));
 		cb(data);
 	});
 };
