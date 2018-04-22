@@ -1303,11 +1303,11 @@ scout.ds = {
 			if (type == 'sgv' || type == 'mbg') {
 				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
 				if (fl.length == 0) {
-					cat.push(data[i]);
+					cat.push(scout.ds._fixSgvDirection(data[i]));
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
 					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
-					scout.ds[type].push(data[i]);
+					scout.ds[type].push(scout.ds._fixSgvDirection(data[i]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
 				}
@@ -1333,6 +1333,40 @@ scout.ds = {
 		if (adds > 0) {
 			scout.ds._sort(type);
 			scout.ds._typeCallback(type);
+		}
+	},
+
+	/*
+	 * Fix the direction of a sgv object when it's stuck on a direction
+	 * of Flat (bug in xDrip nightly using G5 algorithm)
+	 */
+	_fixSgvDirection: function(sgv) {
+		if (sgv['direction'] == 'Flat' && Math.abs(sgv['delta']) >= 5) {
+			sgv['direction'] = scout.ds._calcSgvDirection(sgv['delta']);
+			console.debug('fixSgvDirection: delta '+sgv['delta']+' fixed with '+sgv['direction']);
+			return sgv;
+		}
+		return sgv;
+	},
+
+	/*
+	 * from xDrip, calculated by slope per minute (so *5)
+	 */
+	_calcSgvDirection: function(delta) {
+		if (delta <= -3.5 * 5) {
+			return "DoubleDown";
+		} else if (delta <= -2 * 5) {
+			return "SingleDown";
+		} else if (delta <= -1 * 5) {
+			return "FortyFiveDown";
+		} else if (delta <= 1 * 5) {
+			return "Flat";
+		} else if (delta <= 2 * 5) {
+			return "FortyFiveUp";
+		} else if (delta <= 3.5 * 5) {
+			return "SingleUp";
+		} else if (delta <= 40 * 5) {
+			return "DoubleUp";
 		}
 	},
 
