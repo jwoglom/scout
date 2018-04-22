@@ -271,7 +271,30 @@ scout.chartConf = {
 	        },
 	        tooltips: {
 	        	mode: 'nearest',
-	        	intersect: false
+	        	intersect: false,
+	        	callbacks: {
+	        		afterLabel: function(tooltipItem, data) {
+	        			var dataset = data.datasets[tooltipItem.datasetIndex];
+		        		var data = dataset.data[tooltipItem.index];
+		        		if (data['sgvObj']) {
+		        			return scout.util.directionToArrow(data.sgvObj['direction']) +
+		                           " "+data.sgvObj['delta']+" mg/dl";
+		        		} else if (data['mbgObj']) {
+		        			return "("+data.mbgObj['device']+")";
+		        		} else if (data['trObj']) {
+		        			return "Carbs: "+data.trObj['carbs'];
+		        		}
+	        			//return parseInt(tooltipItem.yLabel)+" yLabel";
+	        		},
+	        		footer: function(tooltipItems, data) {
+	        			var tooltipItem = tooltipItems[0]; // fixme, iterate over all
+	        			var dataset = data.datasets[tooltipItem.datasetIndex];
+		        		var data = dataset.data[tooltipItem.index];
+		        		if (data['trObj']) {
+	        				return data.trObj['notes'];
+	        			}
+	        		}
+	        	}
 	        },
 			scales: {
 				xAxes: [{
@@ -1193,7 +1216,8 @@ scout.sgv = {
 				dataset.data.push({
 					x: mom,
 					y: obj['mbg'],
-					r: scout.config.mbg.radius
+					r: scout.config.mbg.radius,
+					mbgObj: obj
 				});
 				console.info('added graph MBG', obj, hrs);
 			} else {
@@ -1223,7 +1247,8 @@ scout.sgv = {
 
 			dataset.data.push({
 				x: moment(obj['date']),
-				y: obj['sgv']
+				y: obj['sgv'],
+				sgvObj: obj
 			});
 			sum += obj['sgv'];
 			if (chart.options.usePointBackgroundColor) {
@@ -1255,7 +1280,8 @@ scout.sgv = {
 			var pt = {
 				x: moment(obj['created_at']),
 				y: yCoord,
-				r: obj['insulin']
+				r: obj['insulin'],
+				trObj: obj
 			};
 			if (pt['r']) {
 				console.debug("bolus", obj['created_at'], pt);
@@ -1403,7 +1429,7 @@ scout.ds = {
 			'dateString': moment(mbg['millis']).format(),
 			'sysTime': moment(mbg['millis']).format(),
 			'type': 'mbg',
-			'device': mbg['device'],
+			'device': mbg['device'] || mbg['enteredBy'], // enteredBy for treatment conversion
 			'mbg': mbg['mgdl'],
 			'_id': mbg['mills'],
 			'converted': true
