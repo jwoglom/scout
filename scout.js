@@ -280,7 +280,7 @@ scout.chartConf = {
 		        			return scout.util.directionToArrow(data.sgvObj['direction']) +
 		                           " "+data.sgvObj['delta']+" mg/dl";
 		        		} else if (data['mbgObj']) {
-		        			return "("+data.mbgObj['device']+")";
+		        			return data.mbgObj['device'];
 		        		} else if (data['trObj']) {
 		        			return "Carbs: "+data.trObj['carbs'];
 		        		}
