@@ -1220,8 +1220,6 @@ scout.sgv = {
 					mbgObj: obj
 				});
 				console.info('added graph MBG', obj, hrs);
-			} else {
-				console.info('ignored graph MBG', obj, hrs);
 			}
 		}
 		console.log("mbgCallback", data);
@@ -1592,8 +1590,6 @@ scout.current = {
 		if (!cur) return;
 		var new_data = (scout.current.currentEntry == null || scout.current.currentEntry['date'] != cur['date']);
 		if (new_data) console.log("loadSgv new data @", new Date());
-		scout.current.currentEntry = cur;
-		scout.current.lastAttemptTime = new Date();
 
 		var sgvText = cur['sgv'];
 		var direction = scout.util.directionToArrow(cur['direction']);
@@ -1602,6 +1598,15 @@ scout.current = {
 
 		var curSgv = document.querySelector("#current_sgv");
 		var curMins = document.querySelector("#current_minsago");
+
+		var is_current = scout.current.shouldUpdateCurrent(cur);
+		if (!is_current) {
+			console.info("loadSgv not current");
+			return;
+		}
+
+		scout.current.currentEntry = entry;
+		scout.current.lastAttemptTime = new Date();
 
 		curSgv.classList.remove('old-data');
 		curMins.classList.remove('old-data');
@@ -1641,6 +1646,24 @@ scout.current = {
 		scout.current.updateFavicon(cur, new_data);
 		scout.current.notify(cur);
 	},
+
+	/*
+	 * Whether currentEntry should be updated with entry
+	 * returns true if entry is the newest and false if backfill data
+	 */
+	shouldUpdateCurrent: function(entry) {
+		if (!scout.current.currentEntry) {
+			return true;
+		}
+
+		var mins_diff = parseInt(scout.current.currentEntry - entry.date) / (60 * 1000);
+		if (mins_diff >= 1) {
+			console.info("updateCur new backfill entry with diff=" + mins_diff);
+			return false;
+		}
+
+		return true;
+	}
 
 	/*
 	 * Updates the favicon using the current data point.
