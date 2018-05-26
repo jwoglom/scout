@@ -1605,7 +1605,14 @@ scout.current = {
 			return;
 		}
 
-		scout.current.currentEntry = entry;
+		var is_gap = scout.current.isGapCurrent(cur);
+		var oldAttemptTime;
+		if (is_gap) {
+			 oldAttemptTime = scout.current.lastAttemptTime;
+			 console.info("isGap oldAttemptTime=", oldAttemptTime);
+		}
+
+		scout.current.currentEntry = cur;
 		scout.current.lastAttemptTime = new Date();
 
 		curSgv.classList.remove('old-data');
@@ -1645,6 +1652,23 @@ scout.current = {
 		}
 		scout.current.updateFavicon(cur, new_data);
 		scout.current.notify(cur);
+
+
+		if (is_gap) {
+			console.info("isGap running manual fetch from", oldAttemptTime);
+			scout.current.manualFetch(oldAttemptTime);
+		}
+	},
+
+	/*
+	 * Get the number of minutes between entry and the currentEntry,
+	 * assuming entry is newer than currentEntry
+	 */ 
+	getCurrentMinDiff: function(entry) {
+		if (!scout.current.currentEntry) {
+			return null;
+		}
+		return parseInt(entry.date - scout.current.currentEntry.date) / (60 * 1000);
 	},
 
 	/*
@@ -1656,14 +1680,28 @@ scout.current = {
 			return true;
 		}
 
-		var mins_diff = parseInt(scout.current.currentEntry - entry.date) / (60 * 1000);
-		if (mins_diff >= 1) {
+		var mins_diff = scout.current.getCurrentMinDiff(entry);
+		if (mins_diff <= -1) {
 			console.info("updateCur new backfill entry with diff=" + mins_diff);
 			return false;
 		}
 
 		return true;
-	}
+	},
+
+	/*
+	 * Whether there is a gap between the most recent point and the last
+	 * stored point.
+	 */
+	isGapCurrent: function(entry) {
+		if (!scout.current.currentEntry) {
+			return false;
+		}
+
+		var mins_diff = scout.current.getCurrentMinDiff(entry);
+		console.debug("isGapCurrent diff=", mins_diff);
+		return (mins_diff > 5);
+	},
 
 	/*
 	 * Updates the favicon using the current data point.
@@ -1885,10 +1923,9 @@ scout.current = {
 	},
 
 	/*
-	 * Performs a manual fetch by determining when the last data was received,
-	 * and fetching for data after that point.
+	 * Determines when the last data was received of any type.
 	 */
-	manualFetch: function() {
+	getMinLatest: function() {
 		// TODO: separate out in calls for scout.fetch?
 		scout.current.lastAttemptTime = new Date();
 		var latest = [];
@@ -1902,6 +1939,13 @@ scout.current = {
 		var minLatest = Math.min.apply(null, latest);
 
 		console.debug("latest", latest, minLatest);
+		return minLatest;
+	},
+
+	/*
+	 * Performs a manual fetch after the given point.
+	 */
+	manualFetch: function(minLatest) {
 		scout.fetch.gte(moment(minLatest).format(), function(d) {
 			console.log("manualFetch:", d);
 		});
@@ -1912,7 +1956,7 @@ scout.current = {
 	 */
 	checkManualFetch: function() {
 		if (scout.current.needManualFetch()) {
-			scout.current.manualFetch();
+			scout.current.manualFetch(scout.current.getMinLatest());
 		} else {
 			// update favicon for old data
 			console.debug("manualFetch favicon update");
