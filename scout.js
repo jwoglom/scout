@@ -1808,6 +1808,26 @@ scout.current = {
 		) && (cur["_id"] != scout.current.nflast["_id"]);
 	},
 
+	shouldNotifyText: function(cur) {
+		var ret = [];
+		if (cur['noise'] > 1) {
+			ret.push("NOISE: " + scout.util.noise(cur['noise']));
+		}
+		if (cur['sgv'] < scout.config.sgv.target_min) {
+			ret.push("LOW ALERT");
+		}
+		if (cur['sgv'] > scout.config.sgv.target_max) {
+			ret.push("HIGH ALERT");
+		}
+		if (cur['delta'] >= scout.config.sgv.spike_delta) {
+			ret.push("HIGH SPIKE");
+		}
+		if (-1*cur['delta'] >= scout.config.sgv.spike_delta) {
+			ret.push("LOW SPIKE");
+		}
+		return ret.join("\n");
+	},
+
 	nfobj: null,
 	nflast: {"_id": null},
 
@@ -1829,8 +1849,8 @@ scout.current = {
 				var delta = cur['delta'] > 0 ? '+'+scout.util.round(cur['delta'], 1) : scout.util.round(cur['delta'], 1);
 				var noise = scout.util.noise(cur['noise']);
 
-				var text = "BG level is "+cur['sgv']+""+direction;
-				var body = "Delta: "+delta+" "+noise;
+				var text = "BG level is "+cur['sgv']+""+direction+" "+delta;
+				var body = scout.current.shouldNotifyText(cur);
 				var bgIcon = scout.current.buildBgIcon(cur);
 				var options = {
 					body: body,
