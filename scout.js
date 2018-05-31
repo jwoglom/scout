@@ -1738,6 +1738,7 @@ scout.current = {
 		var n = function(i) {
 			return (i/64) * bs;
 		};
+		var baseFont = "Open Sans";
 
 		with (canvas.getContext("2d")) {
 			clearRect(0, 0, canvas.width, canvas.height);
@@ -1750,10 +1751,10 @@ scout.current = {
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
-				font = n(30)+"px Arial";
+				font = n(30)+"px "+baseFont;
 				fillText(tdiff, n(32), n(30));
 
-				font = n(40)+"px Arial";
+				font = n(40)+"px "+baseFont;
 				fillText(tline, n(32), n(63));
 			} else if (scout.util.isMissedData(cur['date'])) {
 				var tdiff = scout.util.getShortTimeDiff(cur['date']);
@@ -1764,10 +1765,10 @@ scout.current = {
 				fillStyle = "rgb(0,0,0)";
 				textAlign = "center";
 
-				font = n(30)+"px Arial";
+				font = n(30)+"px "+baseFont;
 				fillText(tdiff, n(32), n(30));
 
-				font = n(40)+"px Arial";
+				font = n(40)+"px "+baseFont;
 				fillText(sgv, n(32), n(63));
 			} else {
 				fillStyle = scout.util.bgColorForSgv(sgv);
@@ -1777,18 +1778,18 @@ scout.current = {
 				textAlign = "center";
 
 				if (show_delta) {
-					font = n(30)+"px Arial";
+					font = n(30)+"px "+baseFont;
 					if (delta.length > 4 && delta.indexOf(".") != -1) {
 						delta = delta.split(".")[0];
 					}
 					fillText(delta, n(32), n(30));
 					textAlign = "center";
 				} else {
-					font = "bold "+n(40)+"px Arial";
+					font = "bold "+n(40)+"px "+baseFont;
 					fillText(arrow, n(32), n(30));
 				}
 
-				font = n(40)+"px Arial";
+				font = n(40)+"px "+baseFont;
 				fillText(sgv, n(32), n(63));
 			}
 		}
