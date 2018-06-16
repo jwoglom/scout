@@ -21,7 +21,7 @@ var scout = {
 			radius: 5
 		},
 		old_minutes: 15,
-		missed_minutes: 8,
+		missed_minutes: 10,
 		pct_split_mins: 15,
 		modifyTitle: false,
 		timeFormat: 'MM/DD/YYYY HH:mm',
@@ -1451,7 +1451,6 @@ scout.ds = {
 	 * Convert multiple sgv's
 	 */
 	_convertSgvs: function(sgvs) {
-		console.debug("convertSgvs: ", sgvs);
 		var upd = [];
 		for (var i=0; i<sgvs.length; i++) {
 			var prv;
@@ -1463,7 +1462,7 @@ scout.ds = {
 			}
 			upd[i] = scout.ds._convertSgv(sgvs[i], prv);
 		}
-		console.debug("convertSgvs done: ", upd);
+		console.debug("convertSgvs done: ", upd, "from:", sgvs);
 		return upd;
 	},
 
@@ -1471,12 +1470,11 @@ scout.ds = {
 	 * Convert multiple mbg's
 	 */
 	_convertMbgs: function(mbgs) {
-		console.debug("convertMbgs:", mbgs);
 		var upd = [];
 		for (var i=0; i<mbgs.length; i++) {
 			upd[i] = scout.ds._convertMbg(mbgs[i]);
 		}
-		console.debug("convertMbgs done:", upd);
+		console.debug("convertMbgs done:", upd, "from:", mbgs);
 		return upd;
 	},
 
@@ -1486,7 +1484,6 @@ scout.ds = {
 	 * because it secretly adds a mgdl value of the current SGV.
 	 */
 	_convertMbgsFromTreatments: function(trs, requireEventType) {
-		console.debug("convertMbgsFromTreatments:", trs);
 		var upd = [];
 		for (var i=0; i<trs.length; i++) {
 			var eventTypeCheck = requireEventType ? (trs[i]['eventType'] == 'BG Check') : true;
@@ -1494,7 +1491,7 @@ scout.ds = {
 				upd.push(scout.ds._convertMbg(trs[i]));
 			}
 		}
-		console.debug("convertMbgsFromTreatments done:", upd);
+		console.debug("convertMbgsFromTreatments done:", upd, "from:", trs);
 		return upd;
 	},
 
@@ -1562,7 +1559,6 @@ scout.ds = {
 		scout.ds[type].sort(function(a, b) {
 			return a.date-b.date;
 		});
-		console.debug("ds.sort["+type+"]");
 	},
 
 	_dateCol: function(type) {
