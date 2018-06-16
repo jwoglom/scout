@@ -33,7 +33,8 @@ var scout = {
 		sensor_age_days: 7,
 		fetch_mode: 'websocket',
 		fetch_delta_fallback: true,
-		notify_for_converted_deltas: false
+		fix_sgv_direction: false,
+		notify_for_converted_deltas: false,
 	}
 };
 
@@ -1328,11 +1329,11 @@ scout.ds = {
 			if (type == 'sgv' || type == 'mbg') {
 				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
 				if (fl.length == 0) {
-					cat.push(scout.ds._fixSgvDirection(data[i]));
+					cat.push(scout.ds._fixSgvDirectionWrapper(data[i]));
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
 					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
-					scout.ds[type].push(scout.ds._fixSgvDirection(data[i]));
+					scout.ds[type].push(scout.ds._fixSgvDirectionWrapper(data[i]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
 				}
@@ -1372,6 +1373,17 @@ scout.ds = {
 			return sgv;
 		}
 		return sgv;
+	},
+
+	/*
+	 * Only run fixSgvDirection when enabled
+	 */
+	_fixSgvDirectionWrapper: function(sgv) {
+		if (scout.config.fix_sgv_direction) {
+			return scout.ds._fixSgvDirection(sgv);
+		} else {
+			return sgv;
+		}
 	},
 
 	/*
@@ -1802,7 +1814,6 @@ scout.current = {
 	 * Additional notification logic in shouldNotifyOldData for old data notification.
 	 */
 	shouldNotify: function(cur) {
-		console.log('shouldNotify', cur);
 		return (
 			cur['noise'] > 1 || 
 			cur['sgv'] < scout.config.sgv.target_min || 
