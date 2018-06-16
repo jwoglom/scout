@@ -1,3 +1,7 @@
+/***********************************************
+* scout: CGM data analysis tool for Nightscout *
+* https://github.com/jwoglom/scout             *
+************************************************/
 var scout = {
 	config: {
 		urls: {
@@ -710,6 +714,10 @@ scout.chart = {
 };
 
 scout.tpl = {
+	/*
+	 * render a HTML template
+	 * for all keys in dict, replace {key} in the template with its value
+	 */
 	renderHTML: function(tplId, dict) {
 		var tpl = document.querySelector("script#" + tplId);
 		var html = tpl.innerHTML;
@@ -764,7 +772,6 @@ scout.inRange = {
 	
 	},
 
-
 	submitFormRange: function() {
 		scout.spinner.start('inRange');
 		var date1 = moment(document.querySelector("#in_range_start").value);
@@ -806,6 +813,9 @@ scout.inRange = {
 		scout.spinner.finish('inRange');
 	},
 
+	/*
+	 * Generate the dictionary of templating data
+	 */
 	dataDict: function(data, id, dates) {
 		var dict = {};
 		var chartData = scout.bg.genChartData(data);
@@ -875,6 +885,9 @@ scout.hourlyPct = {
 		scout.spinner.finish('hourlyPct');
 	},
 
+	/*
+	 * Generate the dictionary of templating data
+	 */
 	dataDict: function(data, id, dates) {
 		var dict = {};
 		var chartData = scout.bg.genChartData(data);
@@ -897,6 +910,9 @@ scout.hourlyPct = {
 	}
 };
 
+/*
+ * Chart for percentiles
+ */
 scout.pct = {
 	init: function(canvasId) {
 		var pctCtx = document.getElementById(canvasId).getContext("2d");
@@ -905,6 +921,9 @@ scout.pct = {
 		return new Chart(pctCtx, pctConf);
 	},
 
+	/*
+	 * Generate the data piped to chartjs in render()
+	 */
 	genChartData: function(fullData) {
 		// TODO: redo these calculations; there's something fishy
 		// with the data that gets put on the graph, it looks off.
@@ -986,6 +1005,9 @@ scout.pct = {
 
 	},
 
+	/*
+	 * Render a percentile chart given chartData to the element chart
+	 */
 	render: function(chart, chartData) {
 		console.debug("pct chartData", chartData);
 		var median = chartData["median"];
@@ -1069,6 +1091,10 @@ scout.pct = {
 		chart.update();
 	},
 
+	/*
+	 * Generate a chart for the given canvasId and fill it with fullData
+	 * Runs init, genChartData, and render
+	 */
 	load: function(canvasId, fullData) {
 		var chart = scout.pct.init(canvasId);
 		scout.pct.render(chart, scout.pct.genChartData(fullData));
@@ -1077,6 +1103,9 @@ scout.pct = {
 	}
 }
 
+/*
+ * Donut-shaped chart for glucose percent in range
+ */
 scout.bg = {
 	init: function(canvasId) {
 		var bgCtx = document.getElementById(canvasId).getContext("2d");
@@ -1128,6 +1157,9 @@ scout.bg = {
 	}
 };
 
+/*
+ * Chart for generic blood glucose data
+ */
 scout.sgv = {
 	currentLength: 12,
 
@@ -1164,6 +1196,10 @@ scout.sgv = {
 		return new Chart(sgvCtx, sgvConf);
 	},
 
+	/*
+	 * Bind the halfday/today/threeday/week zoom options' click handlers
+	 * Runs on DOM page load
+	 */
 	bindJump: function() {
 		function click(hours) {
 			return function() {
@@ -1180,10 +1216,16 @@ scout.sgv = {
 		document.querySelector("#sgv-jump-week").addEventListener('click', click(7*24));//scout.fetch.week
 	},
 
+	/*
+	 * Binds the primary SGV chart as the one in overview
+	 */
 	primaryCallback: function(data) {
 		scout.sgv.callback(scout.chart.sgv, data);
 	},
 
+	/*
+	 * Fills the primary SGV chart with all data in ds
+	 */
 	primaryDSCallback: function() {
 		scout.sgv.primaryCallback({
 			'sgv': scout.ds.getLatestHrs('sgv', scout.sgv.currentLength),
@@ -1192,12 +1234,18 @@ scout.sgv = {
 		});
 	},
 
+	/*
+	 * Generic callback for rendering chart with obtained data
+	 */
 	callback: function(chart, data) {
 		scout.sgv.sgvCallback(chart, data);
 		scout.sgv.trCallback(chart, data);
 		scout.sgv.mbgCallback(chart, data);
 	},
 
+	/*
+	 * Renders manual blood glucose entries on chart
+	 */
 	mbgCallback: function(chart, fullData) {
 		var data = fullData["mbg"];
 		if (!data) {
@@ -1229,6 +1277,9 @@ scout.sgv = {
 		chart.update();
 	},
 
+	/*
+	 * Renders sensor glucose values on chart
+	 */
 	sgvCallback: function(chart, fullData) {
 		var data = fullData["sgv"];
 		console.log("sgvCallback data", data);
@@ -1268,6 +1319,9 @@ scout.sgv = {
 		chart.update();
 	},
 
+	/*
+	 * Renders treatment values on chart
+	 */
 	trCallback: function(chart, fullData) {
 		console.debug("trCallback", fullData);
 		var data = fullData["tr"];
@@ -1291,7 +1345,9 @@ scout.sgv = {
 		chart.update();
 	},
 
-
+	/*
+	 * Inits data and bolusData
+	 */
 	load: function(canvasId, data, bolusData, extraConf) {
 		var chart = scout.sgv.init(canvasId, extraConf);
 		scout.sgv.callback(chart, data);
@@ -1551,16 +1607,28 @@ scout.ds = {
 		}
 	},
 
+	/*
+	 * Filter shortcut
+	 */
 	filter: function(type, filter) {
 		return scout.ds[type].filter(filter);
 	},
 
+	/*
+	 * Sort data of type
+	 * Run when new data is added
+	 */
 	_sort: function(type) {
 		scout.ds[type].sort(function(a, b) {
 			return a.date-b.date;
 		});
 	},
 
+	/*
+	 * Get the date column used in the Nightscout provided data dump
+	 * for the given type. Sensor values are stored in nightscout's
+	 * mongo as 'date' while almost everything else uses 'created_at'
+	 */
 	_dateCol: function(type) {
 		if (type == 'sgv') return 'date';
 		if (type == 'tr') return 'created_at';
@@ -2055,6 +2123,9 @@ scout.fetch = function(args, cb) {
 	});
 }
 
+/*
+ * Shortcuts for various ranges for fetching
+ */
 scout.fetch.gte = function(fmt, cb) {
 	return scout.fetch({date: {"gte": fmt}, count: 99999}, cb);
 }
@@ -2092,6 +2163,9 @@ scout.fetch.hours = function(hours, cb) {
  * Module for status info for the current device.
  */
 scout.device = {
+	/*
+	 * Get count number of device statuses
+	 */
 	fetchStatus: function(count, cb) {
 		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
 			var data = JSON.parse(resp.text);
@@ -2100,6 +2174,9 @@ scout.device = {
 		});
 	},
 
+	/*
+	 * Get the latest Sensor Start treatment
+	 */
 	fetchSensorStart: function(cb) {
 		scout.trfetch({
 			eventType: "Sensor+Start",
@@ -2110,6 +2187,9 @@ scout.device = {
 		}, cb);
 	},
 
+	/*
+	 * Render the status of the uploader in the overview
+	 */
 	renderStatus: function(data) {
 		var latest = data[0];
 		console.log("latest devicestatus:", latest);
@@ -2117,6 +2197,9 @@ scout.device = {
 		document.querySelector("#device_name").innerHTML = latest["device"];
 	},
 
+	/*
+	 * Render the status of the cgm in the overview
+	 */
 	renderSensor: function(trData) {
 		var latest = trData[0];
 		var created = latest["created_at"];
@@ -2127,6 +2210,9 @@ scout.device = {
 		scout.util.updateTimeago();
 	},
 
+	/*
+	 * Update device and sensor status
+	 */
 	update: function() {
 		scout.device.fetchStatus(1, scout.device.renderStatus);
 
@@ -2155,6 +2241,9 @@ scout.trfetch = function(args, cb) {
 	});
 };
 
+/*
+ * Shortcuts for fetching bolus data
+ */
 scout.trfetch.bolus = function(args, cb) {
 	args["eventType"] = "Meal Bolus";
 	return scout.trfetch(args, cb);
@@ -2301,6 +2390,9 @@ scout.bat = {
 		return new Chart(batCtx, batConf);
 	},
 
+	/*
+	 * Add battery data to chart dataset
+	 */
 	callback: function(chart, data) {
 		var dataset = chart.data.datasets[0];
 		dataset.backgroundColor = [];
@@ -2335,6 +2427,9 @@ scout.uploaderBat = {
 		scout.uploaderBat.refreshGraph();
 	},
 
+	/*
+	 * Get the number of uploader readings to show in the chart
+	 */
 	getReadingsCount: function() {
 		var readings = document.getElementById("uploader_bat_readings");
 		if (!readings) {
@@ -2343,12 +2438,18 @@ scout.uploaderBat = {
 		return parseInt(readings.value);
 	},
 
+	/*
+	 * Update the current status of the uploader on the page
+	 */
 	currentStatus: function(data) {
 		var cont = document.getElementById("uploader_bat_status");
 		var data = scout.uploaderBat.currentStatusData(data);
 		cont.innerHTML = scout.tpl.renderHTML("uploader_bat_status_tpl", data);
 	},
 
+	/*
+	 * Format the template data for status of the uploader
+	 */
 	currentStatusData: function(data) {
 		var latest = data[0];
 		var created = moment(latest['created_at']);
@@ -2359,18 +2460,27 @@ scout.uploaderBat = {
 		};
 	},
 
+	/*
+	 * Update the battery chart
+	 */
 	updateCanvas: function(data) {
 		var cont = document.getElementById("uploader_bat_canvas_container");
 		cont.innerHTML = scout.tpl.renderHTML("uploader_bat_canvas_tpl", {});
 		scout.bat.load("uploaderBatCanvas", data);
 	},
 
+	/*
+	 * Get the most recent device status
+	 */
 	refreshCurrentStatus: function() {
 		scout.device.fetchStatus(1, function(data) {
 			scout.uploaderBat.currentStatus(data);
 		});
 	},
 
+	/*
+	 * Grab new data for the graph using currently requested # of entries
+	 */
 	refreshGraph: function() {
 		scout.spinner.start('uploaderBat');
 		scout.device.fetchStatus(scout.uploaderBat.getReadingsCount(), function(data) {
@@ -2387,6 +2497,12 @@ scout.uploaderBat = {
  */
 scout.ws = {
 	socket: null,
+	silentDataUpdates: 0,
+	/*
+	 * Initialize a ws connection 'silently', meaning don't inform the rest of the
+	 * application that we're using websockets and still manually poll.
+	 * This is practically useless.
+	 */
 	silentInit: function() {
 		scout.ws.socket = io(scout.config.urls.domainRoot, {
 			path: scout.config.urls.socketio_path
@@ -2408,11 +2524,15 @@ scout.ws = {
 
 		socket.on('dataUpdate', function(data) {
 			console.log('SilentDataUpdate', data);
-			scout.ws.foo++;
+			scout.ws.silentDataUpdates++;
 			//scout.ds.deltaAdd(data);
 		});
 	},
-	foo: 0,
+
+	/*
+	 * Initialize and connect to the ws socketio path and register the callback
+	 * for dataUpdate socket events
+	 */
 	init: function() {
 		scout.ws.socket = io(scout.config.urls.domainRoot, {
 			path: scout.config.urls.socketio_path
@@ -2476,6 +2596,7 @@ scout.init = {
 		scr.onload = scout.ws.init;
 		document.body.appendChild(scr);
 	},
+
 	silentWebsocket: function() {
 		var scr = document.createElement('script');
 		scr.type = 'text/javascript';
@@ -2490,6 +2611,9 @@ scout.init = {
  */
 Chart.defaults.global.plugins.datalabels.display = false;
 Chart.defaults.global.animation.duration = 250;
+/*
+ * Extension for center text inside donut charts (type sgv)
+ */
 Chart.pluginService.register({
 	afterUpdate: function (chart) {
 		if (chart.config.options.elements.center) {
