@@ -32,7 +32,8 @@ var scout = {
 		uploaderBat_default_readings: 1000,
 		sensor_age_days: 7,
 		fetch_mode: 'websocket',
-		fetch_delta_fallback: true
+		fetch_delta_fallback: true,
+		notify_for_converted_deltas: false
 	}
 };
 
@@ -1801,12 +1802,16 @@ scout.current = {
 	 * Additional notification logic in shouldNotifyOldData for old data notification.
 	 */
 	shouldNotify: function(cur) {
+		console.log('shouldNotify', cur);
 		return (
 			cur['noise'] > 1 || 
 			cur['sgv'] < scout.config.sgv.target_min || 
 			cur['sgv'] >= scout.config.sgv.target_max ||
 			Math.abs(cur['delta']) >= scout.config.sgv.spike_delta
-		) && (cur["_id"] != scout.current.nflast["_id"]);
+		) && ( // prevents notifying large delta from missing data
+		       (scout.config.notify_for_converted_deltas ? true : !cur['converted'])
+		) && ( // No repeats
+			cur["_id"] != scout.current.nflast["_id"]);
 	},
 
 	shouldNotifyText: function(cur) {
