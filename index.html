@@ -45,8 +45,8 @@
 		</header>
 		<main class="mdl-layout__content">
 			<div class="mdl-layout__tab-panel is-active" id="overview">
-				<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
-					<div class="mdl-card mdl-cell mdl-cell--4-col">
+				<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="overview_top">
+					<div class="mdl-card mdl-cell mdl-cell--4-col" id="overview_sgv">
 						<h2 class="current-header">
 							<span id="current_sgv">
 								<div class="mdl-spinner mdl-js-spinner is-active center-spinner"></div>
@@ -57,7 +57,7 @@
 							<span id="current_minsago"></span>
 						</h3>
 					</div>
-					<div class="mdl-card mdl-cell mdl-cell--4-col">
+					<div class="mdl-card mdl-cell mdl-cell--4-col" id="overview_dir">
 						<h2 class="current-header">
 							<span id="current_direction"></span>
 						</h2>
@@ -65,7 +65,7 @@
 							<span id="current_delta"></span>
 						</h3>
 					</div>
-					<div class="mdl-card mdl-cell mdl-cell--4-col">
+					<div class="mdl-card mdl-cell mdl-cell--4-col" id="overview_bat">
 						<h4 class="current-subhead">
 							Battery: <span id="device_battery"></span><br />
 							<span id="device_name" class="current-smtext"></span>
@@ -560,6 +560,73 @@
 
  .center-spinner {
  	margin: 50px auto;
+ }
+
+ @media (max-width: 840px) {
+ 	#overview_bat {
+ 		display: table-row;
+    	width: 100%;
+ 	}
+
+ 	#overview_bat > h4 {
+ 		width: 38%;
+	    display: inline-block;
+	    padding-left: 10%;
+ 	}
+
+ 	#overview_top {
+ 		height: 300px;
+ 		overflow: hidden;
+ 	}
+
+ 	.mdl-demo main > .mdl-layout__tab-panel {
+ 		padding-top: 10px;
+ 	}
+
+ 	.mdl-demo .mdl-layout__content section:not(:last-of-type) {
+ 		margin-bottom: 10px;
+ 	}
+ }
+
+ @media (max-width: 600px) {
+ 	#overview_sgv {
+ 		width: 60%;
+ 		zoom: 0.8;
+ 	}
+
+ 	#overview_dir {
+ 		width: 40%;
+ 		zoom: 0.8;
+ 	}
+
+ 	#overview_bat {
+ 		zoom: 0.8;
+ 	}
+
+ 	#overview_top {
+ 		height: 250px;
+ 		overflow: hidden;
+ 	}
+ }
+
+ @media (max-width: 460px) {
+ 	#overview_bat > h4 {
+ 		padding-left: 5%;
+ 		width: 43%;
+ 	}
+ }
+
+ @media (max-width: 410px) {
+ 	#overview_bat > h4 {
+ 		padding-left: 5px;
+ 		width: 48%;
+ 		font-size: 22px;
+ 	}
+
+ 	#overview_sgv h3.current-subhead {
+ 		margin-left: 0;
+ 		margin-right: 0;
+ 	}
  }
 </style>
 </body>
