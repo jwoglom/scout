@@ -39,7 +39,8 @@ var scout = {
 		fetch_delta_fallback: true,
 		fix_sgv_direction: false,
 		notify_for_converted_deltas: false,
-		graph_gradient: false
+		graph_gradient: false,
+		tooltip_device_strip: 'xDrip-DexcomG5'
 	}
 };
 
@@ -326,6 +327,8 @@ scout.chartConf = {
 		        		var data = dataset.data[tooltipItem.index];
 		        		if (data['trObj']) {
 	        				return data.trObj['notes'];
+	        			} else if (data['sgvObj']) {
+	        				return data.sgvObj['device'].replace(scout.config.tooltip_device_strip, '').trim();
 	        			}
 	        		}
 	        	}
