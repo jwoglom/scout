@@ -39,6 +39,7 @@ var scout = {
 		fetch_delta_fallback: true,
 		fix_sgv_direction: false,
 		notify_for_converted_deltas: false,
+		graph_gradient: false
 	}
 };
 
@@ -214,6 +215,33 @@ scout.util = {
 	updateTimeago: function() {
 		// needs to be re-run after DOM changes
 		timeago().render(document.querySelectorAll('.timeago'));
+	},
+
+	graphGradient: function(type, sgvCtx) {
+		var g = sgvCtx.createLinearGradient(0, 0, 0, 500);
+		var VERY_LOW = 'rgba(255, 0, 0, 1)';
+		var LOW = 'rgba(255, 0, 0, 0.1)';
+		var GOOD = 'rgba(0, 255, 0, 0.3)';
+		var HIGH = 'rgba(255, 127, 0, 0.1)';
+		var VERY_HIGH = 'rgba(255, 127, 0, 0.5)';
+		if (type == 'lowRange') {
+			// rgba(255, 0, 0, 0.1)
+			g.addColorStop(0, VERY_LOW);
+			g.addColorStop(1, LOW);
+		} else if (type == 'goodRange') {
+			// rgba(0, 255, 0, 0.1)
+
+			g.addColorStop(1, LOW);
+			g.addColorStop(0.8, GOOD);
+			g.addColorStop(0.2, GOOD);
+			g.addColorStop(0, HIGH);
+		} else if (type == 'highRange') {
+			// rgba(255, 127, 0, 0.1)
+			g.addColorStop(0.5, HIGH);
+			g.addColorStop(0, VERY_HIGH);
+		}
+
+		return g;
 	}
 };
 
@@ -1188,6 +1216,12 @@ scout.sgv = {
 			if (extraConf['thinLines']) {
 				sgvConf['data']['datasets'][0]['borderWidth'] = 2;
 				sgvConf['options']['elements'] = {point: {radius: 0}};
+			}
+		}
+		if (scout.config.graph_gradient) {
+			var annotations = sgvConf['options']['annotation']['annotations'];
+			for (var i=0; i<annotations.length; i++) {
+				annotations[i]['backgroundColor'] = scout.util.graphGradient(annotations[i]['id'], sgvCtx)
 			}
 		}
 
