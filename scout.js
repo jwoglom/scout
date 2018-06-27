@@ -40,7 +40,8 @@ var scout = {
 		fix_sgv_direction: false,
 		notify_for_converted_deltas: false,
 		graph_gradient: false,
-		tooltip_device_strip: 'xDrip-DexcomG5'
+		tooltip_device_strip: 'xDrip-DexcomG5',
+		graph_highlight_backfill: true
 	}
 };
 
@@ -55,6 +56,12 @@ scout.util = {
 		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 127, 127)';
 		if (sgv >= scout.config.sgv.target_max) return 'rgb(255, 127, 0)';
 		return 'rgb(0, 255, 0)';
+	},
+
+	colorForSgvBackfill: function(sgv) {
+		if (sgv < scout.config.sgv.target_min) return 'rgb(255, 0, 200)';
+		if (sgv >= scout.config.sgv.target_max) return 'rgb(255, 127, 127)';
+		return 'rgb(0, 255, 255)';
 	},
 
 	updateInRange: function(obj, sgv) {
@@ -243,6 +250,10 @@ scout.util = {
 		}
 
 		return g;
+	},
+
+	isBackfilledSgv: function(sgv) {
+		return sgv['device'].indexOf('Backfill') != -1;
 	}
 };
 
@@ -1339,8 +1350,11 @@ scout.sgv = {
 				sgvObj: obj
 			});
 			sum += obj['sgv'];
-			if (chart.options.usePointBackgroundColor) {
-				dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']))
+			
+			if (scout.config.graph_highlight_backfill && scout.util.isBackfilledSgv(obj)) {
+				dataset.pointBackgroundColor.push(scout.util.colorForSgvBackfill(obj['sgv']));
+			} else if (chart.options.usePointBackgroundColor) {
+				dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']));
 			}
 		}
 		var avg = Math.round(sum/dataset.data.length);
@@ -1750,6 +1764,9 @@ scout.current = {
 
 		curSgv.innerHTML = sgvText;
 		curSgv.style.color = scout.util.colorForSgv(cur['sgv']);
+
+		var delayedSec =  moment.duration(moment().diff(cur['date'])).asSeconds();
+		console.debug('delayedSec', delayedSec);
 		curMins.innerHTML = scout.util.embedTimeago(cur['date']);
 		scout.util.updateTimeago();
 		document.querySelector("#current_direction").innerHTML = direction;
