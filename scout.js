@@ -80,6 +80,10 @@ scout.util = {
 		return parseInt(num * Math.pow(10, places)) / Math.pow(10, places);
 	},
 
+	percent: function(num, decimalPlaces) {
+		return new String(scout.util.round(num, 2+parseInt(decimalPlaces)) * 100).substr(0, 3+parseInt(decimalPlaces))+"%";
+	},
+
 	directionToArrow: function(dir) {
 		return {
 			/*
@@ -861,6 +865,8 @@ scout.inRange = {
 	dataDict: function(data, id, dates) {
 		var dict = {};
 		var chartData = scout.bg.genChartData(data);
+		var totalRangeMs = (data.length >= 1 ? data[0].date - data[data.length-1].date : 0);
+		var totalPossibleBgs = totalRangeMs / (5 * 60 * 1000);
 
 		if (dates.length == 1) {
 			dict['header_date'] = moment(dates[0]).format("MMMM Do, YYYY");
@@ -868,15 +874,22 @@ scout.inRange = {
 			dict['header_date'] = moment(dates[0]).format("MMMM Do")+" - "+moment(dates[1]).format("MMMM Do, YYYY");
 		}
 
-		var inRangePct = chartData.inRange[2]/chartData.bgCount
-		var avgBg = chartData.bgSum/chartData.bgCount
+		console.debug('inRange chartData', chartData, data);
+		if (chartData.bgCount > 0) {
+			var inRangePct = chartData.inRange[2]/chartData.bgCount;
+			var avgBg = chartData.bgSum/chartData.bgCount;
+			var totalPct = (chartData.bgCount / totalPossibleBgs);
+			var realtimePct = (chartData.bgCount - chartData.backfillCount) / chartData.bgCount;
+		} else {
+			var inRangePct = avgBg = totalPct = realtimePct = 0;
+		}
 
-		dict['in_range_pct'] = "In range: "+scout.util.round(inRangePct, 4)*100+"%";
-		dict['avg_bg'] = "Average BG: "+Math.round(avgBg);
+		dict['total_num'] = "Cap: "+scout.util.percent(totalPct, 2);
+		dict['realtime_num'] = "Realtime: "+scout.util.percent(realtimePct, 2)+"";
+		dict['in_range_pct'] = "In: "+scout.util.round(inRangePct, 4)*100+"%";
+		dict['high_low_bg'] = "Range: "+Math.round(chartData.highBg)+"/"+Math.round(chartData.lowBg);
+		dict['avg_bg'] = "Avg: "+Math.round(avgBg);
 		dict['avg_a1c'] = scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c";
-		dict['high_bg'] = "High: "+Math.round(chartData.highBg);
-		dict['low_bg'] = "Low: "+Math.round(chartData.lowBg);
-		dict['total_num'] = "Total entries: "+chartData.bgCount;
 
 		return dict;
 	}
@@ -1163,12 +1176,14 @@ scout.bg = {
 			bgCount: 0,
 			highBg: data.length>0 ? data[0]['sgv'] : 0,
 			lowBg: data.length>0 ? data[0]['sgv'] : 0,
+			backfillCount: 0
 		};
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
 			scout.util.updateInRange(dat, obj['sgv']);
 			dat.bgSum += obj['sgv'];
 			dat.bgCount++;
+			if (scout.util.isBackfilledSgv(obj)) dat.backfillCount++;
 		}
 		console.debug("bg chartD", dat);
 		return dat;
@@ -1351,7 +1366,10 @@ scout.sgv = {
 			});
 			sum += obj['sgv'];
 			
-			if (scout.config.graph_highlight_backfill && scout.util.isBackfilledSgv(obj)) {
+			if (chart.options.usePointBackgroundColor &&
+				scout.config.graph_highlight_backfill &&
+				scout.util.isBackfilledSgv(obj))
+			{
 				dataset.pointBackgroundColor.push(scout.util.colorForSgvBackfill(obj['sgv']));
 			} else if (chart.options.usePointBackgroundColor) {
 				dataset.pointBackgroundColor.push(scout.util.colorForSgv(obj['sgv']));
