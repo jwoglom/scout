@@ -132,7 +132,8 @@
 						<div class="mdl-spinner mdl-js-spinner is-active center-spinner hidden" id="in_range_spinner"></div>
 	          		</section>
 				<script type="text/template" id="in_range_tpl">
-					<section class="in_range_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="in_range_section_{id}">
+					<section class="in_range_section dynamic-section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="in_range_section_{id}">
+						<div class="card-close" onclick="this.parentElement.remove()"></div>
 						<div class="mdl-cell mdl-cell--3-col-desktop mdl-cell--2-col-tablet mdl-cell--4-col-phone">
 							<canvas id="in_range_canvas_{id}"></canvas>
 						</div>
@@ -141,11 +142,13 @@
 								<h4>{header_date}</h4>
 								<table class="in_range_stats">
 									<tr>
-										<td>{total_num}</td>
-										<td>{realtime_num}</td>
-										<td>{in_range_pct}</td>
-										<td>{high_low_bg}</td>
-										<td>{avg_bg}</td>
+										<td>Cap: {cap_pct}</td>
+										<td>RT: {realtime_pct}</td>
+										<td>RTMiss: {realtime_miss}</td>
+										<td>In: {in_range_pct}</td>
+										<td>Out: {out_range_pcts}</td>
+										<td>Range: {high_low_bg}</td>
+										<td>Avg: {avg_bg}</td>
 										<td>{avg_a1c}</td>
 									</tr>
 								</table>
@@ -180,7 +183,8 @@
 						<div class="mdl-spinner mdl-js-spinner is-active center-spinner hidden" id="hourly_pct_spinner"></div>
 	          		</section>
 				<script type="text/template" id="hourly_pct_tpl">
-					<section class="hourly_pct_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="hourly_pct_section_{id}">
+					<section class="hourly_pct_section dynamic-section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="hourly_pct_section_{id}">
+						<div class="card-close" onclick="this.parentElement.remove()"></div>
 						<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
 							<div class="mdl-card__supporting-text">
 								<h4>{header_date}</h4>
@@ -538,7 +542,7 @@
  }
 
  #in_range table.in_range_stats td {
- 	width: 16.66%;
+ 	width: 12.5%;
  	text-align: left;
  }
 
@@ -560,6 +564,26 @@
 
  .center-spinner {
  	margin: 50px auto;
+ }
+
+ .dynamic-section {
+ 	position: relative;
+ }
+
+ .card-close {
+ 	position: absolute;
+    top: 0;
+    right: 0;
+    padding: 10px;
+    z-index: 2;
+    font-size: 16px;
+    line-height: 12px;
+    cursor: pointer;
+    content: "";
+ }
+
+ .card-close:before {
+ 	content: "\2716";
  }
 
  @media (max-width: 840px) {

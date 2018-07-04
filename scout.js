@@ -81,7 +81,8 @@ scout.util = {
 	},
 
 	percent: function(num, decimalPlaces) {
-		return new String(scout.util.round(num, 2+parseInt(decimalPlaces)) * 100).substr(0, 3+parseInt(decimalPlaces))+"%";
+		var places = parseInt(decimalPlaces) || 0;
+		return new String(scout.util.round(num, 2+places) * 100).substr(0, 3+places)+"%";
 	},
 
 	directionToArrow: function(dir) {
@@ -865,8 +866,6 @@ scout.inRange = {
 	dataDict: function(data, id, dates) {
 		var dict = {};
 		var chartData = scout.bg.genChartData(data);
-		var totalRangeMs = (data.length >= 1 ? data[0].date - data[data.length-1].date : 0);
-		var totalPossibleBgs = totalRangeMs / (5 * 60 * 1000);
 
 		if (dates.length == 1) {
 			dict['header_date'] = moment(dates[0]).format("MMMM Do, YYYY");
@@ -875,20 +874,27 @@ scout.inRange = {
 		}
 
 		console.debug('inRange chartData', chartData, data);
-		if (chartData.bgCount > 0) {
-			var inRangePct = chartData.inRange[2]/chartData.bgCount;
-			var avgBg = chartData.bgSum/chartData.bgCount;
-			var totalPct = (chartData.bgCount / totalPossibleBgs);
-			var realtimePct = (chartData.bgCount - chartData.backfillCount) / chartData.bgCount;
-		} else {
-			var inRangePct = avgBg = totalPct = realtimePct = 0;
+		if (chartData.bgCount == 0) {
+			for (var i=0, j=[
+				'cap_pct', 'realtime_pct', 'realtime_miss', 'in_range_pct', 'out_range_pcts', 'high_low_bg', 'avg_bg', 'avg_a1c'
+			]; i<j.length; i++) dict[j[i]] = 'n/a';
+			return dict;
 		}
 
-		dict['total_num'] = "Cap: "+scout.util.percent(totalPct, 2);
-		dict['realtime_num'] = "Realtime: "+scout.util.percent(realtimePct, 2)+"";
-		dict['in_range_pct'] = "In: "+scout.util.round(inRangePct, 4)*100+"%";
-		dict['high_low_bg'] = "Range: "+Math.round(chartData.highBg)+"/"+Math.round(chartData.lowBg);
-		dict['avg_bg'] = "Avg: "+Math.round(avgBg);
+		var inRangePct = chartData.inRange[2]/chartData.bgCount;
+		var lowRangePct = chartData.inRange[1]/chartData.bgCount;
+		var highRangePct = chartData.inRange[3]/chartData.bgCount;
+		var avgBg = chartData.bgSum/chartData.bgCount;
+		var totalPct = Math.min(1, chartData.bgCount / chartData.totalPossibleBgs);
+		var realtimePct = (chartData.bgCount - chartData.backfillCount) / chartData.bgCount;
+
+		dict['cap_pct'] = scout.util.percent(totalPct, 2);
+		dict['realtime_pct'] = scout.util.percent(realtimePct, 2);
+		dict['realtime_miss'] = chartData.backfillCount;
+		dict['in_range_pct'] = scout.util.round(inRangePct, 4)*100+"%";
+		dict['out_range_pcts'] = scout.util.percent(lowRangePct)+"/"+scout.util.percent(highRangePct);
+		dict['high_low_bg'] = Math.round(chartData.highBg)+"/"+Math.round(chartData.lowBg);
+		dict['avg_bg'] = ""+Math.round(avgBg);
 		dict['avg_a1c'] = scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c";
 
 		return dict;
@@ -1186,6 +1192,9 @@ scout.bg = {
 			if (scout.util.isBackfilledSgv(obj)) dat.backfillCount++;
 		}
 		console.debug("bg chartD", dat);
+
+		dat.totalRangeMs = (data.length >= 1 ? data[0].date - data[data.length-1].date : 0);
+		dat.totalPossibleBgs = Math.ceil(dat.totalRangeMs / (5 * 60 * 1000));
 		return dat;
 	},
 
