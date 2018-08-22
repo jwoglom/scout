@@ -155,6 +155,7 @@ scout.util = {
 	},
 
 	noise: function(n) {
+		if (!n) return '';
 		return [
 			'?',
 			'✓',
