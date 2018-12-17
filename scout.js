@@ -294,14 +294,14 @@ scout.chartConf = {
 				tooltips: false,
 				datalabels: {
 					display: true,
-					backgroundColor: 'rgba(255, 0, 0, 0.5)',
 					borderRadius: 4,
+					// backgroundColor: 'rgba(255, 0, 0, 0.5),
 					color: 'white',
 					font: {
 						weight: 'bold'
 					},
 					align: 'start',
-					anchor: 'start'
+					anchor: 'start',
 				},
 				data: []
 			}, {
@@ -325,6 +325,14 @@ scout.chartConf = {
 	        	mode: 'nearest',
 	        	intersect: false,
 	        	callbacks: {
+					label: function(tooltipItem, data) {
+						var dataset = data.datasets[tooltipItem.datasetIndex];
+						var idata = dataset.data[tooltipItem.index];
+						if (dataset['label'] == 'Bolus' && !idata['r']) {
+							return ''; // hide Bolus label and value for notes
+						}
+						return Chart.defaults.global.tooltips.callbacks.label(tooltipItem, data);
+					},
 	        		afterLabel: function(tooltipItem, data) {
 	        			var dataset = data.datasets[tooltipItem.datasetIndex];
 		        		var data = dataset.data[tooltipItem.index];
@@ -332,24 +340,45 @@ scout.chartConf = {
 		        			return scout.util.directionToArrow(data.sgvObj['direction']) +
 		                           " "+data.sgvObj['delta']+" mg/dl";
 		        		} else if (data['mbgObj']) {
-		        			return data.mbgObj['device'];
-		        		} else if (data['trObj']) {
+		        			return data.mbgObj['device'] || 'unknown device';
+		        		} else if (data['trObj'] && !!data.trObj['carbs']) {
 		        			return "Carbs: "+data.trObj['carbs'];
 		        		}
 	        			//return parseInt(tooltipItem.yLabel)+" yLabel";
-	        		},
+					},
 	        		footer: function(tooltipItems, data) {
 	        			var tooltipItem = tooltipItems[0]; // fixme, iterate over all
 	        			var dataset = data.datasets[tooltipItem.datasetIndex];
 		        		var data = dataset.data[tooltipItem.index];
 		        		if (data['trObj']) {
-	        				return data.trObj['notes'];
+	        				return data.trObj['notes'].split('\n');
 	        			} else if (data['sgvObj']) {
 	        				return data.sgvObj['device'].replace(scout.config.tooltip_device_strip, '').trim();
 	        			}
 	        		}
 	        	}
-	        },
+			},
+			plugins: {
+				datalabels: {
+					backgroundColor: function(context) {
+						console.log('bgc', context);
+						var index = context.dataIndex;
+						var value = context.dataset.data[index];
+						if (!value['r'] && value['trObj']['notes']) {
+							return 'rgba(255, 128, 0, 0.75)';
+						}
+						return 'rgba(255, 0, 0, 0.5)';
+					},
+
+					formatter: function(value, context) {
+						console.log('fmt', value, context);
+						if (!value['r'] && value['trObj']['notes']) {
+							return 'Note';
+						}
+						return value['r'];
+					}
+				}
+			},
 			scales: {
 				xAxes: [{
 					type: "time",
@@ -1419,7 +1448,14 @@ scout.sgv = {
 			if (pt['r']) {
 				console.debug("bolus", obj['created_at'], pt);
 				dataset.data.push(pt);
-			} else console.debug("skipped non-bolus", obj['created_at'], pt);
+			} else if (!!obj['notes']) {
+				// todo: pt['backgroundColor'] = 'yellow';
+				pt['r'] = 0;
+				dataset.data.push(pt);
+				console.debug("non-bolus note", obj['created_at'], pt);
+			} else {
+				console.debug("skipped non-bolus", obj['created_at'], pt);
+			}
 		}
 		chart.update();
 	},
