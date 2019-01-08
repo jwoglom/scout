@@ -37,7 +37,7 @@ var scout = {
 		sensor_age_days: 7,
 		fetch_mode: 'websocket',
 		fetch_delta_fallback: true,
-		fix_sgv_direction: false,
+		fix_sgv_direction: true,
 		notify_for_converted_deltas: false,
 		graph_gradient: false,
 		tooltip_device_strip: 'xDrip-DexcomG5',
