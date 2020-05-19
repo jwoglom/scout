@@ -19,7 +19,9 @@ var scout = {
 		sgv: {
 			target_min: 80,
 			target_max: 200,
-			spike_delta: 12
+			spike_delta: 12,
+			graph_min: 40,
+			graph_max: 240
 		},
 		mbg: {
 			radius: 5
@@ -407,8 +409,8 @@ scout.chartConf = {
 						labelString: 'mg/dL'
 					},
 					ticks: {
-						suggestedMin: 40,
-						suggestedMax: 280,
+						suggestedMin: scout.config.sgv.graph_min,
+						suggestedMax: scout.config.sgv.graph_max,
 						stepSize: 40
 
 					}
@@ -537,8 +539,8 @@ scout.chartConf = {
 						labelString: 'mg/dL'
 					},
 					ticks: {
-						suggestedMin: 40,
-						suggestedMax: 280,
+						suggestedMin: scout.config.sgv.graph_min,
+						suggestedMax: scout.config.sgv.graph_max,
 						stepSize: 40
 
 					}
