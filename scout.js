@@ -141,7 +141,9 @@ scout.util = {
 
 	timeAgo: function(date) {
 		var mom = moment(date).fromNow();
-		if (mom == "a few seconds ago") return "just now";
+		if (mom == "a few seconds ago" || mom.indexOf(" seconds ago") != -1) {
+			return "just now";
+		}
 		return mom;
 	},
 
