@@ -1,0 +1,171 @@
+
+ h2.current-header {
+    font-size: 128px;
+    line-height: 128px;
+    margin: 10px 20px;
+
+    text-align: center;
+}
+
+h3.current-subhead {
+    font-size: 32px;
+    line-height: 32px;
+    margin: 0 20px;
+
+    text-align: center;
+}
+
+ h5.current-subhead {
+    font-size: 24x;
+    line-height: 24px;
+    margin: 0 10px;
+
+    text-align: center;
+}
+
+
+.mdl-layout__tab-bar.small-tab-bar .mdl-layout__tab {
+    height: 32px;
+    line-height: 32px;
+}
+
+#current_sgv.old-data {
+    text-decoration: line-through;
+}
+
+#current_minsago.old-data {
+    color: rgb(255, 0, 0);
+}
+
+#current_minsago.missed-data {
+    color: rgb(255, 127, 0);
+}
+
+#current_delta:after {
+    content: " mg/dL";
+    font-size: 14px;
+}
+
+#current_noise {
+    font-weight: bold;    
+}
+
+#in_range .in_range_section .mdl-card__supporting-text {
+    margin: 0 20px;
+}
+
+#in_range table.in_range_stats {
+    width: 100%;
+}
+
+#in_range table.in_range_stats td {
+    width: 12.5%;
+    text-align: left;
+}
+
+#device_battery:after {
+    content: "%";
+}
+
+.current-smtext {
+    font-size: 14px;
+}
+
+.current-mdtext {
+    font-size: 18px;
+}
+
+.sensor_age_section canvas {
+    height: 300px;
+}
+
+.center-spinner {
+    margin: 50px auto;
+}
+
+.dynamic-section {
+    position: relative;
+}
+
+.card-close {
+    position: absolute;
+   top: 0;
+   right: 0;
+   padding: 10px;
+   z-index: 2;
+   font-size: 16px;
+   line-height: 12px;
+   cursor: pointer;
+   content: "";
+}
+
+.card-close:before {
+    content: "\2716";
+}
+
+@media (max-width: 840px) {
+    #overview_bat {
+        display: table-row;
+       width: 100%;
+    }
+
+    #overview_bat > h4 {
+        width: 38%;
+       display: inline-block;
+       padding-left: 10%;
+    }
+
+    #overview_top {
+        height: 300px;
+        overflow: hidden;
+    }
+
+    .mdl-demo main > .mdl-layout__tab-panel {
+        padding-top: 10px;
+    }
+
+    .mdl-demo .mdl-layout__content section:not(:last-of-type) {
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    #overview_sgv {
+        width: 60%;
+        zoom: 0.8;
+    }
+
+    #overview_dir {
+        width: 40%;
+        zoom: 0.8;
+    }
+
+    #overview_bat {
+        zoom: 0.8;
+    }
+
+    #overview_top {
+        height: 250px;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 460px) {
+    #overview_bat > h4 {
+        padding-left: 5%;
+        width: 43%;
+    }
+}
+
+@media (max-width: 410px) {
+    #overview_bat > h4 {
+        padding-left: 5px;
+        width: 48%;
+        font-size: 22px;
+    }
+
+    #overview_sgv h3.current-subhead {
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
