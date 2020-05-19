@@ -2800,9 +2800,16 @@ window.onload = function() {
 	scout.init.fetch();
 	scout.util.updateTimeago();
 	if (window.location.search.indexOf('?dark') != -1) {
-		var link = document.createElement('link');
-		link.setAttribute('rel', 'stylesheet');
-		link.setAttribute('href', 'styles/dark.css');
-		document.body.appendChild(link);
+		var color = '#303030';
+		var arg = window.location.search.split('?dark=');
+		if (arg.length > 1) color = arg[1];
+		var style = document.createElement('style');
+		style.innerHTML = '' +
+		'body, *, .mdl-card, .mdl-layout__tab-bar {' +
+		'	background: ' + color + ';' +
+		'	color: white;' +
+		'}' +
+		'body { min-height: inherit; }';
+		document.body.appendChild(style);
 	}
 };
