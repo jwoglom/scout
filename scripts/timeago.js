@@ -21,6 +21,8 @@ function () {
       'en': function(number, index) {
         if (index === 0) return ['just now', 'right now'];
         var unit = indexMapEn[parseInt(index / 2)];
+        // don't show discrete seconds ago
+        if (unit == 'second') return ['<1 minute ago', '<1 minute ago'];
         if (number > 1) unit += 's';
         return [number + ' ' + unit + ' ago', 'in ' + number + ' ' + unit];
       },
