@@ -141,7 +141,7 @@ scout.util = {
 
 	timeAgo: function(date) {
 		var mom = moment(date).fromNow();
-		if (mom == "a few seconds ago" || mom.indexOf(" seconds ago") != -1) {
+		if (mom == "a few seconds ago") {
 			return "just now";
 		}
 		return mom;
@@ -2799,4 +2799,10 @@ window.onload = function() {
 	scout.sgv.primaryInit();
 	scout.init.fetch();
 	scout.util.updateTimeago();
+	if (window.location.search.indexOf('?dark') != -1) {
+		var link = document.createElement('link');
+		link.setAttribute('rel', 'stylesheet');
+		link.setAttribute('href', 'styles/dark.css');
+		document.body.appendChild(link);
+	}
 };
