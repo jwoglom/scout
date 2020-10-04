@@ -365,12 +365,19 @@ scout.chartConf = {
 		                           " "+data.sgvObj['delta']+" mg/dl";
 		        		} else if (data['mbgObj']) {
 		        			return data.mbgObj['device'] || 'unknown device';
-		        		} else if (data['trObj'] && !!data.trObj['carbs']) {
-		        			return "Carbs: "+data.trObj['carbs'];
+		        		} else if (data['trObj']) {
+							var ret = [];
+							if (!!data.trObj['carbs']) {
+								return [
+									"Carbs: "+data.trObj['carbs'],
+									data.trObj['notes'].split('\n')
+								];
+							}
+							return data.trObj['notes'].split('\n');
 		        		} else if (data['basalObj']) {
 							var untilTime = moment(data.basalObj['date']);
 							untilTime.add(data.basalObj['duration'], 'minutes');
-							var untilTimeStr = untilTime.format('h:ma');
+							var untilTimeStr = untilTime.format('h:Ma');
 							return [
 								"Duration: "+Math.round(data.basalObj['duration'])+" min (until "+untilTimeStr+")",
 								"Reason: "+data.basalObj['reason']
@@ -383,7 +390,7 @@ scout.chartConf = {
 	        			var dataset = data.datasets[tooltipItem.datasetIndex];
 		        		var data = dataset.data[tooltipItem.index];
 		        		if (data['trObj']) {
-	        				return data.trObj['notes'].split('\n');
+	        				return data.trObj['enteredBy'].replace(scout.config.tooltip_device_strip, '').trim();
 	        			} else if (data['sgvObj']) {
 	        				return data.sgvObj['device'].replace(scout.config.tooltip_device_strip, '').trim();
 	        			} else if (data['basalObj']) {
