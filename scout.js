@@ -23,7 +23,8 @@ var scout = {
 			graph_min: 40,
 			graph_max: 240,
 			units_graph_min: 0,
-			units_graph_max: 3,
+            units_graph_max: 3,
+            units_graph_reversed: true
 		},
 		mbg: {
 			radius: 5
@@ -325,7 +326,7 @@ scout.chartConf = {
 				data: []
 			}, {
 				label: 'Basal',
-				fill: 'start',
+				fill: scout.config.sgv.units_graph_reversed ? 'end' : 'start',
 				pointRadius: 0,
 				backgroundColor: 'rgba(0, 128, 255, 0.25)',
 				borderColor: 'rgba(0, 0, 0, 0)',
@@ -471,7 +472,8 @@ scout.chartConf = {
 					ticks: {
 						suggestedMin: scout.config.sgv.units_graph_min,
 						suggestedMax: scout.config.sgv.units_graph_max,
-						stepSize: 0
+                        stepSize: 0,
+                        reverse: scout.config.sgv.units_graph_reversed
 					}
 				}],
 			},
@@ -1613,16 +1615,26 @@ scout.ds = {
 					scout.ds[type].push(scout.ds._fixSgvDirectionWrapper(data[i]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
-				}
+                }
+            } else if (type == 'basal') {
+                var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
+				if (fl.length == 0) {
+					cat.push(data[i]);
+					adds++;
+				} else if (fl.length == 1 && fl[0]['duration'] < data[i]['duration']) {
+                    // Replace the old basal object which has been updated
+                    console.debug("updating basal object:", fl[0], "new:", data[i]);
+                    scout.ds[type] = scout.ds[type].filter(function(e) { return e['_id'] != data[i]['_id']; });
+                    scout.ds[type].push(data[i]);
+                    adds++;
+                }
 			} else {
 				var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
 				if (fl.length == 0) {
 					cat.push(data[i]);
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
-					if (type != 'basal') {
-						console.error('unimplemented _add', fl, type);
-					}
+                    console.error('unimplemented _add', fl, type);
 				}
 			}
 		}
