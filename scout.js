@@ -375,13 +375,23 @@ scout.chartConf = {
 							}
 							return data.trObj['notes'].split('\n');
 		        		} else if (data['basalObj']) {
-							var untilTime = moment(data.basalObj['date']);
-							untilTime.add(data.basalObj['duration'], 'minutes');
-							var untilTimeStr = untilTime.format('h:Ma');
-							return [
-								"Duration: "+Math.round(data.basalObj['duration'])+" min (until "+untilTimeStr+")",
-								"Reason: "+data.basalObj['reason']
-							];
+                            var duration = Math.round(data.basalObj['duration']);
+                            if (data['endBasal']) {
+                                var sinceTime = moment(data.basalObj['date']);
+                                var sinceTimeStr = sinceTime.format('h:mma');
+                                return [
+                                    "Duration: " + duration + " min" + (duration > 1 ? 's' : '') + " (since " + sinceTimeStr + ")",
+                                    "Reason: "+data.basalObj['reason']
+                                ];
+                            } else {
+                                var untilTime = moment(data.basalObj['date']);
+                                untilTime.add(data.basalObj['duration'], 'minutes');
+                                var untilTimeStr = untilTime.format('h:mma');
+                                return [
+                                    "Duration: " + duration + " min" + (duration > 1 ? 's' : '') + " (until "+untilTimeStr+")",
+                                    "Reason: "+data.basalObj['reason']
+                                ];
+                            }
 						}
 	        			//return parseInt(tooltipItem.yLabel)+" yLabel";
 					},
@@ -1526,17 +1536,32 @@ scout.sgv = {
 		var data = fullData["basal"];
 		var sgvData = fullData["sgv"];
 		var dataset = chart.config.data.datasets[4];
-		dataset.data = [];
+        dataset.data = [];
+        var obj = null;
 		for (var i=0; i<data.length; i++) {
-			var obj = data[i];
+			obj = data[i];
 			var pt = {
 				x: moment(obj['date']),
 				y: obj['absolute'],
-				basalObj: obj
+                basalObj: obj,
+                endBasal: false
 			};
 			console.debug("basal", obj, pt);
 			dataset.data.push(pt);
-		}
+        }
+        // Add separate point for the end time of the most recent basal
+        if (obj != null) {
+            var endDate = moment(obj['date']);
+            endDate.add(obj['duration'], 'minutes');
+            var pt = {
+                x: endDate,
+                y: obj['absolute'],
+                basalObj: obj,
+                endBasal: true
+            }
+            console.debug("lastBasal", obj, pt);
+            dataset.data.push(pt);
+        }
 		chart.update();
 	},
 
