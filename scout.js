@@ -327,7 +327,7 @@ scout.chartConf = {
 				label: 'Basal',
 				fill: 'start',
 				pointRadius: 0,
-				backgroundColor: 'rgba(0, 0, 255, 0.25)',
+				backgroundColor: 'rgba(0, 128, 255, 0.25)',
 				borderColor: 'rgba(0, 0, 0, 0)',
 				type: 'line',
 				tooltips: false,
@@ -412,7 +412,7 @@ scout.chartConf = {
 			plugins: {
 				datalabels: {
 					backgroundColor: function(context) {
-						console.log('bgc', context);
+						// console.log('bgc', context);
 						var index = context.dataIndex;
 						var value = context.dataset.data[index];
 						if (!value['r'] && value['trObj'] && value['trObj']['notes']) {
@@ -422,7 +422,7 @@ scout.chartConf = {
 					},
 
 					formatter: function(value, context) {
-						console.log('fmt', value, context);
+						// console.log('fmt', value, context);
 						if (!value['r'] && value['trObj'] && value['trObj']['notes']) {
 							return 'Note';
 						}
@@ -1546,7 +1546,7 @@ scout.sgv = {
                 basalObj: obj,
                 endBasal: false
 			};
-			console.debug("basal", obj, pt);
+			// console.debug("basal", obj, pt);
 			dataset.data.push(pt);
         }
         // Add separate point for the end time of the most recent basal
@@ -1730,7 +1730,6 @@ scout.ds = {
 	 * Convert websocket basal data to a basal object.
 	 */
 	_convertBasal: function(tr) {
-		console.log('BASAL:', tr);
 		return {
 			'date': tr['mills'],
 			'dateString': moment(tr['mills']).format(),
