@@ -169,3 +169,8 @@ h3.current-subhead {
         margin-right: 0;
     }
 }
+
+body.iframe-view .mdl-card {
+    margin-top: 0;
+    margin-bottom: 0;
+}
