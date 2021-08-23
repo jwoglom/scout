@@ -449,6 +449,10 @@ scout.chartConf = {
 					scaleLabel: {
 						display: false,
 						labelString: 'Date'
+					},
+					ticks: {
+						autoSkip: true,
+						maxTicksLimit: 20,
 					}
 				}, ],
 				yAxes: [{
