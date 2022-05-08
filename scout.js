@@ -3037,6 +3037,10 @@ Chart.pluginService.register({
 });
 
 window.onload = function() {
+	if (window.location.search.indexOf('sgvLength=') != -1) {
+		var arg = window.location.search.split('sgvLength=');
+		scout.sgv.currentLength = parseInt(arg[1].split('&')[0]);
+	}
 	scout.sgv.primaryInit();
 	scout.init.fetch();
 	scout.util.updateTimeago();
