@@ -3047,7 +3047,7 @@ window.onload = function() {
 	if (window.location.search.indexOf('?dark') != -1) {
 		var color = '#303030';
 		var arg = window.location.search.split('?dark=');
-		if (arg.length > 1) color = arg[1];
+		if (arg.length > 1) color = arg[1].split('&')[0];
 		var style = document.createElement('style');
 		style.innerHTML = '' +
 		'body, *, .mdl-card, .mdl-layout__tab-bar {' +
