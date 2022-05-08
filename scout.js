@@ -48,6 +48,13 @@ var scout = {
 		tooltip_device_strip: 'xDrip-DexcomG5',
 		graph_highlight_backfill: true,
 		graph_show_basal: true,
+		custom_event_types: {
+			'Sleep': unescape('%uD83D%uDCA4'),
+			'Basal Suspension': unescape('%u274C'),
+			'Sensor Start': unescape('%uD83C%uDFC1'),
+			'Site Change': unescape('%uD83D%uDD04'),
+			'Sensor Stop': unescape('%uD83D%uDEA9'),
+		},
 	}
 };
 
@@ -424,7 +431,9 @@ scout.chartConf = {
 
 					formatter: function(value, context) {
 						// console.log('fmt', value, context);
-						if (!value['r'] && value['trObj'] && value['trObj']['notes']) {
+						if (!value['r'] && value['trObj'] && scout.config.custom_event_types.hasOwnProperty(value['trObj']['eventType'])) {
+							return scout.config.custom_event_types[value['trObj']['eventType']];
+						} else if (!value['r'] && value['trObj'] && value['trObj']['notes']) {
 							return 'Note';
 						}
 						return value['r'];
