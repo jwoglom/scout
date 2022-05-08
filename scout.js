@@ -55,6 +55,14 @@ var scout = {
 			'Site Change': unescape('%uD83D%uDD04'),
 			'Sensor Stop': unescape('%uD83D%uDEA9'),
 		},
+		basal_event_types: [
+			'Sleep',
+			'Basal Suspension',
+			'Site Change',
+		],
+		treatment_default_y_coord: 80,
+		treatment_basal_y_coord: 280,
+		treatment_use_sgv_y_coord: false,
 	}
 };
 
@@ -1517,7 +1525,7 @@ scout.sgv = {
 		var sgvData = fullData["sgv"];
 		var dataset = chart.config.data.datasets[2];
 		dataset.data = [];
-		var yCoord = 80;
+		var yCoord = scout.config.treatment_default_y_coord;
 		for (var i=0; i<data.length; i++) {
 			var obj = data[i];
 			var pt = {
@@ -1526,6 +1534,14 @@ scout.sgv = {
 				r: obj['insulin'],
 				trObj: obj
 			};
+			if (!!obj['eventType'] && scout.config.basal_event_types.includes(obj['eventType'])) {
+				pt['y'] = scout.config.treatment_basal_y_coord;
+			} else if (scout.config.treatment_use_sgv_y_coord) {
+				var closest = scout.sgv.closest_sgv_at_time(pt['x'].unix() * 1000);
+				if (!!closest) {
+					pt['y'] = closest['sgv'];
+				}
+			}
 			if (pt['r']) {
 				console.debug("bolus", obj['created_at'], pt);
 				dataset.data.push(pt);
@@ -1539,6 +1555,19 @@ scout.sgv = {
 			}
 		}
 		chart.update();
+	},
+
+	/*
+	 * Given an integer timestamp return the sgv entry closest to the time,
+	 * used for mapping the location of a treatment to be near the sgv line
+	 */
+	closest_sgv_at_time: function(time) {
+		console.debug('closest_sgv_at_time', time)
+		var sgvs = scout.ds.sgv.filter(sgv => Math.abs(sgv.date - time) < 900000);
+		if (sgvs.length == 0) return null;
+		var dist = sgvs.sort((a, b) => Math.abs(a.date - time) - Math.abs(b.date - time))
+		console.debug('closest_sgv_at_time', time, dist);
+		return dist[0];
 	},
 	
 
