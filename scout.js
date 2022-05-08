@@ -24,7 +24,8 @@ var scout = {
 			graph_max: 240,
 			units_graph_min: 0,
             units_graph_max: 3,
-            units_graph_reversed: true
+            units_graph_reversed: true,
+			default_graph_length: 12,
 		},
 		mbg: {
 			radius: 5
@@ -1343,7 +1344,7 @@ scout.bg = {
  * Chart for generic blood glucose data
  */
 scout.sgv = {
-	currentLength: 12, // default length
+	currentLength: scout.config.sgv.default_graph_length, // default length
 
 	reload: function() {
 		scout.sgv.reloadCurrentLength(scout.sgv.primaryDSCallback);
@@ -1386,7 +1387,7 @@ scout.sgv = {
 
 	/*
 	 * Bind the halfday/today/threeday/week zoom options' click handlers
-	 * Runs on DOM page load
+	 * Runs on DOM page load and also update the active class item
 	 */
 	bindJump: function() {
 		function click(hours) {
@@ -1398,11 +1399,26 @@ scout.sgv = {
 				scout.sgv.reload();
 			}
 		}
-		document.querySelector("#sgv-jump-quarterday").addEventListener('click', click(6));//scout.fetch.quarterday
-		document.querySelector("#sgv-jump-halfday").addEventListener('click', click(12));//scout.fetch.halfday
-		document.querySelector("#sgv-jump-today").addEventListener('click', click(24));//scout.fetch.today
-		document.querySelector("#sgv-jump-threeday").addEventListener('click', click(3*24));//scout.fetch.threeday
-		document.querySelector("#sgv-jump-week").addEventListener('click', click(7*24));//scout.fetch.week
+
+		var items = {
+			'eighthday': 3,
+			'quarterday': 6,
+			'halfday': 12,
+			'today': 24,
+			'threeday': 3*24,
+			'week': 7*24
+		};
+
+		Object.entries(items).forEach(entry => {
+			var el = document.querySelector("#sgv-jump-" + entry[0]);
+			if (!el) return;
+			el.addEventListener('click', click(entry[1]));
+
+			if (scout.config.currentLength == entry[1]) {
+				el.parentElement.querySelector(".is-active").classList.remove('is-active');
+				el.add('is-active');
+			}
+		});
 	},
 
 	/*
