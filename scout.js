@@ -1594,6 +1594,9 @@ scout.sgv = {
 		console.debug("basalCallback", fullData);
 		if (!scout.config.graph_show_basal) return;
 		var data = fullData["basal"];
+		if (data === undefined) {
+			data = [];
+		}
 		var sgvData = fullData["sgv"];
 		var dataset = chart.config.data.datasets[4];
         dataset.data = [];
