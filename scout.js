@@ -30,6 +30,9 @@ var scout = {
 		mbg: {
 			radius: 5
 		},
+		sab: {
+			max_days: 30
+		},
 		old_minutes: 15,
 		missed_minutes: 10,
 		pct_split_mins: 15,
@@ -768,8 +771,18 @@ scout.chartConf = {
 	        	mode: 'index',
 	        	intersect: false,
 	        	callbacks: {
+					title: function(tooltipItem, data) {
+						if (data.datasets.length != 1 || tooltipItem.length == 0) return;
+						var itemDate = data.datasets[0].timeData[tooltipItem[0].index];
+						return moment(itemDate).format("MMMM Do, YYYY hh:mmA");
+					},
 	        		label: function(tooltipItem, data) {
-	        			return parseInt(tooltipItem.yLabel)+" days ("+parseInt(tooltipItem.yLabel*24)+" hours)";
+						console.log("xxx", tooltipItem, data);
+						var days = tooltipItem.yLabel;
+						if (data.datasets.length > 0) {
+							days = data.datasets[0].realDuration[tooltipItem.index];
+						}
+	        			return parseInt(days)+" days ("+parseInt(days*24)+" hours)";
 	        		}
 	        	}
 	        },
@@ -2647,6 +2660,8 @@ scout.sab = {
 
 	callback: function(chart, data) {
 		var dataset = chart.data.datasets[0];
+		dataset.timeData = [];
+		dataset.realDuration = [];
 		var times = [];
 		for (var i=0; i<data.length; i++) {
 			var time = data[i]['created_at'];
@@ -2662,9 +2677,11 @@ scout.sab = {
 			}
 			var diff = moment.duration(moment(nxt).diff(times[i]));
 			dataset.data.push({
-				x: times[i],
-				y: diff.asDays()
+				x: i,
+				y: Math.min(diff.asDays(), scout.config.sab.max_days)
 			});
+			dataset.timeData.push(times[i]);
+			dataset.realDuration.push(diff.asDays());
 			dataset.backgroundColor.push(scout.util.sensorAgeColor(diff.asHours()));
 		}
 
