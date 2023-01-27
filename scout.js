@@ -955,6 +955,41 @@ scout.inRange = {
 		scout.inRange.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format());
 	},
 
+	adjustFormRange: function(sDelta, eDelta) {
+		document.querySelector("#in_range_start").value = moment(document.querySelector("#in_range_start").value).add(sDelta, 'days').format('YYYY-MM-DD');
+		document.querySelector("#in_range_end").value = moment(document.querySelector("#in_range_end").value).add(eDelta, 'days').format('YYYY-MM-DD');
+	},
+
+	submitFormRangeWeekly: function() {
+		var date1 = moment(document.querySelector("#in_range_start").value);
+		var date2 = moment(document.querySelector("#in_range_end").value);
+		var dates = [];
+		while (date1 < date2) {
+			var end = moment(date1).add(7, 'days');
+			if (end <= date2) {
+				dates.push([date1.format(), end.format()]);
+			} else {
+				dates.push([date1.format(), date2.format()]);
+			}
+			console.info(date1.format(), end.format(), date2.format(), dates);
+			date1 = moment(end);
+		}
+
+		console.info(JSON.stringify(dates));
+		var f = function() {
+			var d = dates.pop();
+			if (!d) {
+				console.log('done!');
+				return;
+			}
+			scout.spinner.start('inRange');
+			scout.inRange.addRange(d[0], d[1], f);
+		}
+
+		f();
+
+	},
+
 	addDay: function(date) {
 		var showBolus = document.querySelector("#in_range_show_bolus").checked;
 		scout.fetch.eq(date, function(data) {
@@ -963,11 +998,12 @@ scout.inRange = {
 		});
 	},
 
-	addRange: function(st_date, end_date) {
+	addRange: function(st_date, end_date, cb) {
 		var showBolus = document.querySelector("#in_range_show_bolus").checked;
 		scout.fetch.range(st_date, end_date, function(data) {
 			if (!showBolus) data["tr"] = [];
 			scout.inRange.embedSingle(data, [st_date, end_date]);
+			if (!!cb) cb();
 		});
 	},
 
