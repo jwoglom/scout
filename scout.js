@@ -2988,6 +2988,7 @@ scout.sab = {
 		var dataset = chart.data.datasets[0];
 		dataset.timeData = [];
 		dataset.realDuration = [];
+		dataset.backgroundColor = [];
 		var times = [];
 		for (var i=0; i<data.length; i++) {
 			var time = data[i]['created_at'];
@@ -3097,13 +3098,18 @@ scout.bat = {
 	/*
 	 * Add battery data to chart dataset
 	 */
-	callback: function(chart, data) {
+	callback: function(chart, data, extraConf) {
+		extraConf = extraConf || {};
 		var dataset = chart.data.datasets[0];
 		dataset.backgroundColor = [];
 		dataset.borderColor = [];
 		var pcts = [];
 		for (var i=0; i<data.length; i++) {
+			if (extraConf.deviceType && data[i]['uploader'] && data[i]['uploader']['type'] != extraConf.deviceType) continue;
 			var pct = parseInt(data[i]['uploader']['battery']);
+			if (data[i]['uploader']['type'] == 'DEXCOM_TRANSMITTER') {
+				pct = parseInt(data[i]['uploader']['voltagea']);
+			}
 			var time = moment(data[i]['created_at']);
 			dataset.data.push({
 				x: time,
@@ -3117,7 +3123,7 @@ scout.bat = {
 
 	load: function(canvasId, data, extraConf) {
 		var chart = scout.bat.init(canvasId, extraConf);
-		scout.bat.callback(chart, data);
+		scout.bat.callback(chart, data, extraConf);
 		chart.update();
 		return chart;
 	}
@@ -3155,22 +3161,56 @@ scout.uploaderBat = {
 	 * Format the template data for status of the uploader
 	 */
 	currentStatusData: function(data) {
-		var latest = data[0];
+		var deviceType = document.getElementById("uploader_bat_devicetype");
+		if (deviceType) deviceType = deviceType.value;
+		else deviceType = "PHONE";
+
+		
+		var latest;
+		for (var i=0; i<data.length; i++) {
+			if (data[i]['uploader']['type'] == deviceType) {
+				latest = data[i];
+				break;
+			}
+		}
+		if (!latest) return {};
 		var created = moment(latest['created_at']);
+
 		return {
 			"current_bat": latest["uploader"]["battery"],
 			"current_bat_date": created.format(scout.config.timeFormat+" a"),
-			"readings": scout.uploaderBat.getReadingsCount()
+			"readings": scout.uploaderBat.getReadingsCount(),
+			"device_type": deviceType,
+			"devicetype_index": deviceType == 'DEXCOM_TRANSMITTER' ? 1 : 0
 		};
+	},
+	
+	currentDexcomTransmitterData: function(data) {
+		var latest;
+		for (var i=0; i<data.length; i++) {
+			if (data[i]['uploader']['type'] == 'DEXCOM_TRANSMITTER') {
+				latest = data[i];
+				break;
+			}
+		}
+		if (!latest) return {};
+		var created = moment(latest['created_at']);
+		return latest.uploader;
 	},
 
 	/*
 	 * Update the battery chart
 	 */
 	updateCanvas: function(data) {
+		var deviceType = document.getElementById("uploader_bat_devicetype");
+		if (deviceType) deviceType = deviceType.value;
+		else deviceType = "PHONE";
+
 		var cont = document.getElementById("uploader_bat_canvas_container");
 		cont.innerHTML = scout.tpl.renderHTML("uploader_bat_canvas_tpl", {});
-		scout.bat.load("uploaderBatCanvas", data);
+		scout.bat.load("uploaderBatCanvas", data, {
+			"deviceType": deviceType
+		});
 	},
 
 	/*

@@ -256,6 +256,13 @@
 							</h4>
 							<b>Last update:</b> {current_bat_date}<br />
 							<form name="uploader_bat_form" action="javascript:;" onsubmit="return false">
+								<b>Device type:</b> 
+								<select name="uploader_bat_devicetype" id="uploader_bat_devicetype" onload="this.selectedIndex={devicetype_index}">
+									<option>PHONE</option>
+									<option>DEXCOM_TRANSMITTER</option>
+								</select>
+							</form>
+							<form name="uploader_bat_form" action="javascript:;" onsubmit="return false">
 								<b>Number of readings:</b> 
 								<input type="number" value="{readings}" min=1 max=5000 step=1 id="uploader_bat_readings" name="uploader_bat_readings" /> 
 								<button onclick="scout.uploaderBat.refreshGraph();return false">
