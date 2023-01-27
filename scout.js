@@ -44,7 +44,7 @@ var scout = {
 		notification_ms: 5000,
 		notifyOldData_mins: 20,
 		uploaderBat_default_readings: 1000,
-		sensor_age_days: 7,
+		sensor_age_days: 10,
 		fetch_mode: 'websocket',
 		fetch_delta_fallback: true,
 		fix_sgv_direction: true,
