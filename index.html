@@ -43,6 +43,7 @@
 				<a onclick="scout.hourlyPct.init()" href="#hourly_pct" class="mdl-layout__tab">Percentile</a>
 				<a onclick="scout.sensorAge.init()" href="#sensor_age" class="mdl-layout__tab">Sensor Age</a>
 				<a onclick="scout.uploaderBat.init()" href="#uploader_bat" class="mdl-layout__tab">Uploader Battery</a>
+				<a onclick="scout.dailyBasal.init()" href="#daily_basal" class="mdl-layout__tab">Daily Basal</a>
 			</div>
 		</header>
 		<main class="mdl-layout__content">
@@ -270,6 +271,66 @@
 					</div>
 					<div class="mdl-spinner mdl-js-spinner is-active center-spinner hidden" id="uploader_bat_spinner"></div>
 	          	</section>
+			</div>
+			<div class="mdl-layout__tab-panel" id="daily_basal">
+				<section class="daily_basal_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+						<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+							<div class="mdl-card__supporting-text">
+								<form onsubmit="return false" id="daily_basal_form">
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="daily_basal_start" placeholder="">
+									    <label class="mdl-textfield__label" for="daily_basal_start">Start Date</label>
+									</div>
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="daily_basal_end" placeholder="">
+									    <label class="mdl-textfield__label" for="daily_basal_end">End Date</label>
+									</div>
+									<div class="mdl-textfield mdl-js-textfield">
+										<input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="daily_basal_period">
+										<label class="mdl-textfield__label" for="sample2">Period (minutes); default 30</label>
+										<span class="mdl-textfield__error">Input is not a number!</span>
+									</div>
+									<br />
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.dailyBasal.submitForm()">
+										View
+									</button> &nbsp; &nbsp; <button class="mdl-button mdl-js-button" onclick="scout.dailyBasal.adjustFormRange(-7, -7)">
+										&#10094; <!-- back -->
+									</button> &nbsp; &nbsp; <button class="mdl-button mdl-js-button" onclick="scout.dailyBasal.adjustFormRange(7, 7)">
+										&#10095; <!-- forward -->
+									</button> &nbsp; &nbsp; 
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.dailyBasal.submitFormWeekly()">
+										Weekly
+									</button> &nbsp; &nbsp; 
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.dailyBasal.submitFormWeekly(14)">
+										Biweekly
+									</button>
+								</form>
+							</div>
+						</div>
+						
+						<div class="mdl-spinner mdl-js-spinner is-active center-spinner hidden" id="daily_basal_spinner"></div>
+	          		</section>
+				<script type="text/template" id="daily_basal_tpl">
+					<section class="hourly_pct_section dynamic-section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="daily_basal_section_{id}">
+						<div class="card-close" onclick="this.parentElement.remove()"></div>
+						<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+							<div class="mdl-card__supporting-text">
+								<h4>{header_date}</h4>
+								<table class="daily_basal_table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+									<thead>
+										<tr>
+											<th>Hour</th>
+											<th>Profile Basal</th>
+											<th>Effective Basal</th>
+											{theadth}
+										</tr>
+									</thead>
+									{tbody}
+								</table>
+							</div>
+						</div>
+	          		</section>
+	          	</script>
 			</div>
 		</main>
 	</div>

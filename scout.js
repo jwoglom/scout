@@ -8,6 +8,7 @@ var scout = {
 			apiRoot: '',
 			sgvEntries: 'entries/sgv.json',
 			mbgEntries: 'entries/mbg.json',
+			currentProfile: 'profile/current.json',
 			deviceStatus: 'devicestatus.json',
 			status: 'status.json',
 			treatments: 'treatments.json',
@@ -911,7 +912,8 @@ scout.spinner = {
 	spinners: {
 		'inRange': '#in_range_spinner',
 		'hourlyPct': '#hourly_pct_spinner',
-		'uploaderBat': '#uploader_bat_spinner'
+		'uploaderBat': '#uploader_bat_spinner',
+		'dailyBasal': '#daily_basal_spinner',
 	},
 	
 	get: function(sp) {
@@ -994,7 +996,7 @@ scout.inRange = {
 		var showBolus = document.querySelector("#in_range_show_bolus").checked;
 		scout.fetch.eq(date, function(data) {
 			if (!showBolus) data["tr"] = [];
-			scout.inRange.embedSingle(data, [date], showBolus);
+			scout.inRange.embedSingle(data, [date]);
 		});
 	},
 
@@ -1192,6 +1194,203 @@ scout.hourlyPct = {
 		dict['avg_bg'] = ""+Math.round(avgBg);
 		dict['avg_a1c'] = scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c";
 
+
+		return dict;
+	}
+};
+
+scout.dailyBasal = {
+	init: function() {
+		var today = moment().format("YYYY-MM-DD");
+		var lastwk = moment().subtract({days: 7}).format("YYYY-MM-DD");
+		document.querySelector("#daily_basal_start").value = lastwk;
+		document.querySelector("#daily_basal_end").value = today;
+	},
+
+	submitForm: function() {
+		scout.spinner.start('dailyBasal');
+		var date1 = moment(document.querySelector("#daily_basal_start").value);
+		var date2 = moment(document.querySelector("#daily_basal_end").value);
+		var period = parseInt(document.querySelector("#daily_basal_period").value);
+		scout.dailyBasal.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format(), {
+			"period": period
+		});
+	},
+	
+	adjustFormRange: function(sDelta, eDelta) {
+		document.querySelector("#daily_basal_start").value = moment(document.querySelector("#daily_basal_start").value).add(sDelta, 'days').format('YYYY-MM-DD');
+		document.querySelector("#daily_basal_end").value = moment(document.querySelector("#daily_basal_end").value).add(eDelta, 'days').format('YYYY-MM-DD');
+	},
+
+	submitFormWeekly: function(days) {
+		var days = days || 7;
+		var date1 = moment(document.querySelector("#daily_basal_start").value);
+		var date2 = moment(document.querySelector("#daily_basal_end").value);
+		var period = parseInt(document.querySelector("#daily_basal_period").value);
+		var dates = [];
+		while (date1 < date2) {
+			var end = moment(date1).add(days, 'days');
+			if (end <= date2) {
+				dates.push([date1.format(), end.format()]);
+			} else {
+				dates.push([date1.format(), date2.format()]);
+			}
+			console.info(date1.format(), end.format(), date2.format(), dates);
+			date1 = moment(end);
+		}
+
+		console.info(JSON.stringify(dates));
+		var f = function() {
+			var d = dates.pop();
+			if (!d) {
+				console.log('done!');
+				return;
+			}
+			scout.spinner.start('dailyBasal');
+			scout.dailyBasal.addRange(d[0], d[1], {
+				"period": period
+			}, f);
+		}
+
+		f();
+	},
+
+	addRange: function(st_date, end_date, options, cb) {
+		scout.currentprofilefetch(function(profiledata) {
+			scout.trfetch({"date": {"gte": st_date, "lte": end_date}, "count": 99999}, function(trdata) {
+				scout.dailyBasal.embedSingle(profiledata, trdata, [st_date, end_date], options, cb);
+			});
+		});
+	},
+
+	embedSingle: function(profiledata, trdata, dates, options, cb) {
+		console.debug("embed", profiledata, trdata);
+		var outer = document.querySelector("#daily_basal");
+		var tpl = document.querySelector("script#daily_basal_tpl");
+		var id = Math.random().toString(36).substring(2);
+		var html = tpl.innerHTML
+			.replace(/\{id\}/g, id)
+			.replace(/\{date\}/g, dates.join("--"));
+		var dict = scout.dailyBasal.dataDict(profiledata, trdata, id, dates, options);
+		for (var key in dict) {
+			html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+		}
+		var newDiv = document.createElement("div");
+		newDiv.innerHTML = html;
+		outer.appendChild(newDiv.children[0]);
+
+		scout.spinner.finish('dailyBasal');
+		if (!!cb) cb();
+	},
+
+
+	getEachDay: function(start, end) {
+		var days = [];
+		var d = moment(start).set({'hour': 0, 'minute': 0});
+		var e = moment(end).set({'hour': 0, 'minute': 0});
+		while (d <= e) {
+			days.push(d.format().split('T')[0]);
+			d = moment(d).add(1, 'day');
+		}
+		return days;
+	},
+
+	/*
+	 * Generate the dictionary of templating data
+	 */
+	dataDict: function(profile, trs, id, dates, options) {
+		options = options || {};
+		var dict = {};
+		var days = scout.dailyBasal.getEachDay(dates[0], dates[1]);
+		console.info('dataDict', profile, trs, id, dates, days);
+
+		var defaultPerMin = [];
+		var perMin = {};
+		days.forEach(day => perMin[day] = []);
+
+		var curProfile = profile.store[profile.defaultProfile];
+		var lastMin = 0;
+		var lastRate = 0;
+		for (var i=0; i<curProfile.basal.length; i++) {
+			var thisMin = parseInt(curProfile.basal[i].timeAsSeconds/60);
+			for (var j=lastMin; j<thisMin; j++) {
+				defaultPerMin.push(lastRate);
+				days.forEach(day => perMin[day].push(lastRate));
+			}
+			lastMin = thisMin;
+			lastRate = curProfile.basal[i].value;
+		}
+		for (var i=lastMin; i<60*24; i++) {
+			defaultPerMin.push(lastRate);
+			days.forEach(day => perMin[day].push(lastRate));
+		}
+
+		trs.filter(tr => tr.eventType == 'Temp Basal').forEach(tr => {
+			var start = moment(tr.created_at);
+			var midnight = start.clone().startOf('day');
+			var day = midnight.format().split('T')[0];
+			var minInDay = start.diff(midnight, 'minutes');
+			
+			var duration = Math.round(tr.duration);
+			for (var i=minInDay; i<minInDay+duration; i++) {
+				perMin[day][i] = tr.absolute;
+			}
+
+			console.debug(tr.absolute+' from '+start+' for '+duration+' min');
+		});
+
+		console.info('defaultPerMin', defaultPerMin);
+
+		dict['header_date'] = days[0] + ' - ' + days[days.length-1];
+
+		dict['perMin'] = perMin;
+
+		function hrmin(i) {
+			function pad(j) {
+				if (parseInt(j) < 10) return '0'+parseInt(j);
+				return parseInt(j);
+			}
+			return pad(i/60) + ':' + pad(i%60);
+		}
+
+		dict['theadth'] = '';
+		for (var i=0; i<days.length; i++) {
+			dict['theadth'] += '<th>' + days[i] + '</th>';
+		}
+		var tbody = document.createElement('tbody');
+		var period = options.period || 30;
+		for (var i=0; i<defaultPerMin.length; i+=period) {
+			var tr = document.createElement('tr')
+			tr.innerHTML += '<th><b>' + hrmin(i) + '</b></th>';
+			tr.innerHTML += '<td>' + defaultPerMin[i] + '</td>';
+
+			var perDays = '';
+			var basalAvgSum = 0;
+			for (var j=0; j<days.length; j++) {
+				var day = days[j];
+				var basalSum = 0;
+				for (var k=i; k<i+period; k++) {
+					basalSum += perMin[day][k];
+				}
+				var basalAvg = basalSum / period;
+				basalAvgSum += basalAvg;
+				var clsName = '';
+				if (basalAvg < defaultPerMin[i]) clsName = 'basal-lower';
+				else if (basalAvg > defaultPerMin[i]) clsName = 'basal-higher';
+				else clsName = 'basal-default';
+				perDays += '<td class="'+clsName+'">' + Number(basalAvg).toFixed(2) + '</td>';
+			}
+			var effectiveBasal = basalAvgSum/days.length;
+			var clsName = '';
+			if (effectiveBasal < defaultPerMin[i]) clsName = 'basal-lower';
+			else if (effectiveBasal > defaultPerMin[i]) clsName = 'basal-higher';
+			else clsName = 'basal-default';
+			tr.innerHTML += '<td class="'+clsName+'">' + Number(effectiveBasal).toFixed(2) + '</td>';
+			tr.innerHTML += perDays;
+
+			tbody.appendChild(tr);
+		}
+		dict['tbody'] = tbody.outerHTML;
 
 		return dict;
 	}
@@ -1760,6 +1959,7 @@ scout.ds = {
 	devicestatus: [],
 	mbg: [],
 	basal: [],
+	profile: [],
 	/*
 	cals: [],
 	profiles: [],
@@ -2587,6 +2787,21 @@ scout.mbgfetch = function(args, cb) {
 scout.sgvfetch.gte = function(gte, cb) {
 	return scout.sgvfetch({"date": {"gte": gte}, "count": 9999}, cb);
 }
+
+
+/*
+ * Fetch for pump profile data.
+ */
+scout.currentprofilefetch = function(cb) {
+	var parsed = "";
+	parsed += "&ts=" + (+new Date());
+	superagent.get(scout.config.urls.apiRoot + scout.config.urls.currentProfile+"?"+parsed, function(resp) {
+		var data = JSON.parse(resp.text);
+		scout.ds.add("profile", [data]);
+		if(!!cb) cb(data);
+	});
+}
+
 
 /*
  * Fetch for SGV, TR, and MBG data.
