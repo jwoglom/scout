@@ -72,6 +72,20 @@ table.hourly_pct_stats td {
     text-align: left;
 }
 
+.basal-lower::before {
+    content: "⌄ ";
+    color: red;
+}
+
+.basal-higher::before {
+    content: "⌃ ";
+    color: blue;
+}
+
+.basal-default::before {
+    content: "= ";
+}
+
 #device_battery:after {
     content: "%";
 }

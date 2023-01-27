@@ -1382,8 +1382,8 @@ scout.dailyBasal = {
 			}
 			var effectiveBasal = basalAvgSum/days.length;
 			var clsName = '';
-			if (effectiveBasal < defaultPerMin[i]) clsName = 'basal-lower';
-			else if (effectiveBasal > defaultPerMin[i]) clsName = 'basal-higher';
+			if (parseInt(effectiveBasal*100) < parseInt(defaultPerMin[i]*100)) clsName = 'basal-lower';
+			else if (parseInt(effectiveBasal*100) > parseInt(defaultPerMin[i]*100)) clsName = 'basal-higher';
 			else clsName = 'basal-default';
 			tr.innerHTML += '<td class="'+clsName+'">' + Number(effectiveBasal).toFixed(2) + '</td>';
 			tr.innerHTML += perDays;
