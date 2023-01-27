@@ -2888,11 +2888,9 @@ scout.device = {
 	 * Render the status of the uploader in the overview
 	 */
 	renderStatus: function(data) {
-		var latest = data[0];
-		console.log("latest devicestatus:", latest);
-		if (latest == undefined) return;
-		document.querySelector("#device_battery").innerHTML = latest["uploader"]["battery"];
-		document.querySelector("#device_name").innerHTML = latest["device"];
+		var dat = scout.uploaderBat.currentStatusData(data);
+		document.querySelector("#device_battery").innerHTML = dat["current_bat"]
+		document.querySelector("#device_name").innerHTML = dat["device_name"];
 	},
 
 	/*
@@ -3181,7 +3179,8 @@ scout.uploaderBat = {
 			"current_bat_date": created.format(scout.config.timeFormat+" a"),
 			"readings": scout.uploaderBat.getReadingsCount(),
 			"device_type": deviceType,
-			"devicetype_index": deviceType == 'DEXCOM_TRANSMITTER' ? 1 : 0
+			"devicetype_index": deviceType == 'DEXCOM_TRANSMITTER' ? 1 : 0,
+			"device_name": latest["device"]
 		};
 	},
 	
@@ -3217,7 +3216,7 @@ scout.uploaderBat = {
 	 * Get the most recent device status
 	 */
 	refreshCurrentStatus: function() {
-		scout.device.fetchStatus(1, function(data) {
+		scout.device.fetchStatus(2, function(data) {
 			scout.uploaderBat.currentStatus(data);
 		});
 	},
