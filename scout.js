@@ -960,12 +960,13 @@ scout.inRange = {
 		document.querySelector("#in_range_end").value = moment(document.querySelector("#in_range_end").value).add(eDelta, 'days').format('YYYY-MM-DD');
 	},
 
-	submitFormRangeWeekly: function() {
+	submitFormRangeWeekly: function(days) {
+		var days = days || 7;
 		var date1 = moment(document.querySelector("#in_range_start").value);
 		var date2 = moment(document.querySelector("#in_range_end").value);
 		var dates = [];
 		while (date1 < date2) {
-			var end = moment(date1).add(7, 'days');
+			var end = moment(date1).add(days, 'days');
 			if (end <= date2) {
 				dates.push([date1.format(), end.format()]);
 			} else {
@@ -1087,12 +1088,13 @@ scout.hourlyPct = {
 		document.querySelector("#hourly_pct_end").value = moment(document.querySelector("#hourly_pct_end").value).add(eDelta, 'days').format('YYYY-MM-DD');
 	},
 
-	submitFormWeekly: function() {
+	submitFormWeekly: function(days) {
+		var days = days || 7;
 		var date1 = moment(document.querySelector("#hourly_pct_start").value);
 		var date2 = moment(document.querySelector("#hourly_pct_end").value);
 		var dates = [];
 		while (date1 < date2) {
-			var end = moment(date1).add(7, 'days');
+			var end = moment(date1).add(days, 'days');
 			if (end <= date2) {
 				dates.push([date1.format(), end.format()]);
 			} else {
