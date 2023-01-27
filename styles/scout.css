@@ -63,6 +63,15 @@ h3.current-subhead {
     text-align: left;
 }
 
+table.hourly_pct_stats {
+    width: 100%;
+}
+
+table.hourly_pct_stats td {
+    width: 12.5%;
+    text-align: left;
+}
+
 #device_battery:after {
     content: "%";
 }

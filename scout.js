@@ -987,7 +987,6 @@ scout.inRange = {
 		}
 
 		f();
-
 	},
 
 	addDay: function(date) {
@@ -1082,14 +1081,48 @@ scout.hourlyPct = {
 		var date2 = moment(document.querySelector("#hourly_pct_end").value);
 		scout.hourlyPct.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format());
 	},
+	
+	adjustFormRange: function(sDelta, eDelta) {
+		document.querySelector("#hourly_pct_start").value = moment(document.querySelector("#hourly_pct_start").value).add(sDelta, 'days').format('YYYY-MM-DD');
+		document.querySelector("#hourly_pct_end").value = moment(document.querySelector("#hourly_pct_end").value).add(eDelta, 'days').format('YYYY-MM-DD');
+	},
 
-	addRange: function(st_date, end_date) {
+	submitFormWeekly: function() {
+		var date1 = moment(document.querySelector("#hourly_pct_start").value);
+		var date2 = moment(document.querySelector("#hourly_pct_end").value);
+		var dates = [];
+		while (date1 < date2) {
+			var end = moment(date1).add(7, 'days');
+			if (end <= date2) {
+				dates.push([date1.format(), end.format()]);
+			} else {
+				dates.push([date1.format(), date2.format()]);
+			}
+			console.info(date1.format(), end.format(), date2.format(), dates);
+			date1 = moment(end);
+		}
+
+		console.info(JSON.stringify(dates));
+		var f = function() {
+			var d = dates.pop();
+			if (!d) {
+				console.log('done!');
+				return;
+			}
+			scout.spinner.start('hourlyPct');
+			scout.hourlyPct.addRange(d[0], d[1], f);
+		}
+
+		f();
+	},
+
+	addRange: function(st_date, end_date, cb) {
 		scout.fetch.range(st_date, end_date, function(data) {
-			scout.hourlyPct.embedSingle(data, [st_date, end_date]);
+			scout.hourlyPct.embedSingle(data, [st_date, end_date], cb);
 		});
 	},
 
-	embedSingle: function(fullData, dates) {
+	embedSingle: function(fullData, dates, cb) {
 		var data = fullData["sgv"];
 		console.debug("embed data", data);
 		var outer = document.querySelector("#hourly_pct");
@@ -1109,6 +1142,7 @@ scout.hourlyPct = {
 		scout.pct.load("hourly_pct_canvas_"+id, fullData);
 
 		scout.spinner.finish('hourlyPct');
+		if (!!cb) cb();
 	},
 
 	/*
@@ -1127,10 +1161,35 @@ scout.hourlyPct = {
 		var inRangePct = chartData.inRange[2]/chartData.bgCount
 		var avgBg = chartData.bgSum/chartData.bgCount
 
-		var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
-					"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)<br>"+
-					"Total entries: "+chartData.bgCount;
-		dict['stats'] = stats;
+		// var stats = "In range: "+scout.util.round(inRangePct, 4)*100+"%<br>" +
+		// 			"Average BG: "+scout.util.round(avgBg, 0)+" ("+scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c)<br>"+
+		// 			"Total entries: "+chartData.bgCount;
+		// dict['stats'] = stats;
+		
+		console.debug('hourlyPct chartData', chartData, data);
+		if (chartData.bgCount == 0) {
+			for (var i=0, j=[
+				'cap_pct', 'realtime_pct', 'realtime_miss', 'in_range_pct', 'out_range_pcts', 'high_low_bg', 'avg_bg', 'avg_a1c'
+			]; i<j.length; i++) dict[j[i]] = 'n/a';
+			return dict;
+		}
+
+		var inRangePct = chartData.inRange[2]/chartData.bgCount;
+		var lowRangePct = chartData.inRange[1]/chartData.bgCount;
+		var highRangePct = chartData.inRange[3]/chartData.bgCount;
+		var avgBg = chartData.bgSum/chartData.bgCount;
+		var totalPct = Math.min(1, chartData.bgCount / chartData.totalPossibleBgs);
+		var realtimePct = (chartData.bgCount - chartData.backfillCount) / chartData.bgCount;
+
+		dict['cap_pct'] = scout.util.percent(totalPct, 2);
+		dict['realtime_pct'] = scout.util.percent(realtimePct, 2);
+		dict['realtime_miss'] = chartData.backfillCount;
+		dict['in_range_pct'] = scout.util.round(inRangePct, 4)*100+"%";
+		dict['out_range_pcts'] = scout.util.percent(lowRangePct)+"/"+scout.util.percent(highRangePct);
+		dict['high_low_bg'] = Math.round(chartData.highBg)+"/"+Math.round(chartData.lowBg);
+		dict['avg_bg'] = ""+Math.round(avgBg);
+		dict['avg_a1c'] = scout.util.round(scout.util.pctA1c(avgBg), 2)+"%A1c";
+
 
 		return dict;
 	}

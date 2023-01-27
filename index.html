@@ -185,6 +185,13 @@
 									<br />
 									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.hourlyPct.submitForm()">
 										View
+									</button> &nbsp; &nbsp; <button class="mdl-button mdl-js-button" onclick="scout.hourlyPct.adjustFormRange(-7, -7)">
+										&#10094; <!-- back -->
+									</button> &nbsp; &nbsp; <button class="mdl-button mdl-js-button" onclick="scout.hourlyPct.adjustFormRange(7, 7)">
+										&#10095; <!-- forward -->
+									</button> &nbsp; &nbsp; 
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.hourlyPct.submitFormWeekly()">
+										Weekly
 									</button>
 								</form>
 							</div>
@@ -198,7 +205,18 @@
 						<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
 							<div class="mdl-card__supporting-text">
 								<h4>{header_date}</h4>
-								{stats}
+								<table class="hourly_pct_stats">
+									<tr>
+										<td>Cap: {cap_pct}</td>
+										<td>RT: {realtime_pct}</td>
+										<td>RTMiss: {realtime_miss}</td>
+										<td>In: {in_range_pct}</td>
+										<td>Out: {out_range_pcts}</td>
+										<td>Range: {high_low_bg}</td>
+										<td>Avg: {avg_bg}</td>
+										<td>{avg_a1c}</td>
+									</tr>
+								</table>
 								<canvas id="hourly_pct_canvas_{id}" height=100></canvas>
 							</div>
 							
