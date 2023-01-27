@@ -777,7 +777,6 @@ scout.chartConf = {
 						return moment(itemDate).format("MMMM Do, YYYY hh:mmA");
 					},
 	        		label: function(tooltipItem, data) {
-						console.log("xxx", tooltipItem, data);
 						var days = tooltipItem.yLabel;
 						if (data.datasets.length > 0) {
 							days = data.datasets[0].realDuration[tooltipItem.index];
@@ -1669,6 +1668,8 @@ scout.ds = {
 	profiles: [],
 	mbgs: []*/
 
+	oldest: {},
+
 	/*
 	 * Add to scout.ds, without duplicating data.
 	 * If a sgv or mbg value, ensure there's not a duplicate by checking the date,
@@ -1679,6 +1680,7 @@ scout.ds = {
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
+			var itemDate;
 			if (type == 'sgv' || type == 'mbg') {
 				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
 				if (fl.length == 0) {
@@ -1690,6 +1692,7 @@ scout.ds = {
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
                 }
+				itemDate = moment(data[i]['date']);
             } else if (type == 'basal') {
                 var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
 				if (fl.length == 0) {
@@ -1702,6 +1705,7 @@ scout.ds = {
                     scout.ds[type].push(data[i]);
                     adds++;
                 }
+				itemDate = moment(data[i]['dateString']);
 			} else {
 				var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
 				if (fl.length == 0) {
@@ -1710,6 +1714,16 @@ scout.ds = {
 				} else if (fl.length == 1 && fl[0]['converted']) {
                     console.error('unimplemented _add', fl, type);
 				}
+				if (!!data[i]['created_at']) {
+					itemDate = moment(data[i]['created_at']);
+				} else if (!!data[i]['date']) {
+					itemDate = moment(data[i]['date']);
+				}
+			}
+			if (!!itemDate && !scout.ds.oldest[type]) {
+				scout.ds.oldest[type] = new Date(+itemDate);
+			} else if (!!itemDate && +itemDate < +(scout.ds.oldest[type])) {
+				scout.ds.oldest[type] = new Date(+itemDate);
 			}
 		}
 		console.debug("ds.add["+type+"] "+adds+"/"+data.length);
