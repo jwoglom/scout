@@ -289,6 +289,16 @@ scout.util = {
 
 	isBackfilledSgv: function(sgv) {
 		return sgv['device'].indexOf('Backfill') != -1;
+	},
+
+	isTransmitterDeviceStatus: function(ds) {
+		if (ds.uploader && ds.uploader.name == 'transmitter') return true;
+		if (ds.uploader && ds.uploader.deviceType == 'DEXCOM_TRANSMITTER') return true;
+		if (ds.uploader && ds.uploader.type == 'DEXCOM_TRANSMITTER') return true;
+		if (ds.name == 'transmitter') return true;
+		if (ds.deviceType == 'DEXCOM_TRANSMITTER') return true;
+		if (ds.type == 'DEXCOM_TRANSMITTER') return true;
+		return false;
 	}
 };
 
@@ -1986,7 +1996,7 @@ scout.ds = {
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
 					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
-					scout.ds[type].push(scout.ds._fixSgvDirectionWrapper(data[i]));
+					scout.ds[type].push(scout.ds._addReplaceConvertedSgv(data[i], fl[0]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
                 }
@@ -2040,14 +2050,29 @@ scout.ds = {
 	},
 
 	/*
+	 * xDrip4iOS doesn't propagate a 'delta' field which is returned on sgv.json,
+	 * so ensure that when we add it manually inside scout, we persist it when merging
+	 * a duplicate sgv entry.
+	 */
+	_addReplaceConvertedSgv: function(sgvNew, sgvOld) {
+		if (sgvNew['delta'] === undefined && sgvOld['delta'] !== undefined) {
+			sgvNew['delta'] = sgvOld['delta'];
+		}
+		return scout.ds._fixSgvDirectionWrapper(sgvNew);
+	},
+
+	/*
 	 * Fix the direction of a sgv object when it's stuck on a direction
 	 * of Flat (bug in xDrip nightly using G5 algorithm)
 	 */
 	_fixSgvDirection: function(sgv) {
-		if (sgv['direction'] == 'Flat' && Math.abs(sgv['delta']) >= 5) {
-			sgv['direction'] = scout.ds._calcSgvDirection(sgv['delta']);
-			console.debug('fixSgvDirection: delta '+sgv['delta']+' fixed with '+sgv['direction']);
-			return sgv;
+		if (sgv['direction'] == 'Flat') {
+			if (sgv['delta'] === undefined) {
+				console.error('null delta', sgv);
+			} else if (Math.abs(sgv['delta']) >= 5) {
+				sgv['direction'] = scout.ds._calcSgvDirection(sgv['delta']);
+				console.debug('fixSgvDirection: delta '+sgv['delta']+' fixed with '+sgv['direction']);
+			}
 		}
 		return sgv;
 	},
@@ -2095,7 +2120,7 @@ scout.ds = {
 			'dateString': moment(sgv['millis']).format(),
 			'sysTime': moment(sgv['millis']).format(),
 			'type': 'sgv',
-			'delta': prev != null ? sgv['mgdl']-prev : 0,
+			'delta': prev != null ? (sgv['mgdl'] || sgv['sgv'])-prev : 0,
 			'device': sgv['device'],
 			'direction': sgv['direction'],
 			'filtered': sgv['filtered'],
@@ -3106,7 +3131,7 @@ scout.bat = {
 		for (var i=0; i<data.length; i++) {
 			if (extraConf.deviceType && data[i]['uploader'] && data[i]['uploader']['type'] != extraConf.deviceType) continue;
 			var pct = parseInt(data[i]['uploader']['battery']);
-			if (data[i]['uploader']['type'] == 'DEXCOM_TRANSMITTER') {
+			if (isTransmitterDeviceStatus(data[i])) {
 				pct = parseInt(data[i]['uploader']['voltagea']);
 			}
 			var time = moment(data[i]['created_at']);
@@ -3180,7 +3205,7 @@ scout.uploaderBat = {
 			"current_bat_date": created.format(scout.config.timeFormat+" a"),
 			"readings": scout.uploaderBat.getReadingsCount(),
 			"device_type": deviceType,
-			"devicetype_index": deviceType == 'DEXCOM_TRANSMITTER' ? 1 : 0,
+			"devicetype_index": scout.util.isTransmitterDeviceStatus({deviceType: deviceType}) ? 1 : 0,
 			"device_name": latest["device"]
 		};
 	},
@@ -3188,7 +3213,7 @@ scout.uploaderBat = {
 	currentDexcomTransmitterData: function(data) {
 		var latest;
 		for (var i=0; i<data.length; i++) {
-			if (data[i]['uploader']['type'] == 'DEXCOM_TRANSMITTER') {
+			if (scout.util.isTransmitterDeviceStatus(data[i])) {
 				latest = data[i];
 				break;
 			}
