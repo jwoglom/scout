@@ -16,3 +16,11 @@ Currently supported functionality includes:
 
 ![screenshot-2](screenshot-2.png)
 
+## Configuration
+Create a file `secret.js` containing:
+
+```javascript
+scout.config.urls.apiRoot = "https://your-nightscout-server.com/api/v1/";
+scout.config.urls.domainRoot = "https://your-nightscout-server.com";
+scout.config.urls.apiSecret = "your_api_secret";
+```

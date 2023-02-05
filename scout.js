@@ -6,6 +6,7 @@ var scout = {
 	config: {
 		urls: {
 			apiRoot: '',
+			apiSecret: null,
 			sgvEntries: 'entries/sgv.json',
 			mbgEntries: 'entries/mbg.json',
 			currentProfile: 'profile/current.json',
@@ -2759,7 +2760,7 @@ scout.sgvfetch = function(args, cb) {
 		if (args.date.lte) parsed += "&find[dateString][$lte]=" + args.date.lte;
 	}
 	parsed += "&ts=" + (+new Date());
-	superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+parsed, function(resp) {
+	scout.superagent.get(scout.config.urls.apiRoot + scout.config.urls.sgvEntries+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		scout.ds.add("sgv", data);
 		cb(data);
@@ -2777,7 +2778,7 @@ scout.mbgfetch = function(args, cb) {
 		if (args.date.lte) parsed += "&find[dateString][$lte]=" + args.date.lte;
 	}
 	parsed += "&ts=" + (+new Date());
-	superagent.get(scout.config.urls.apiRoot + scout.config.urls.mbgEntries+"?"+parsed, function(resp) {
+	scout.superagent.get(scout.config.urls.apiRoot + scout.config.urls.mbgEntries+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		scout.ds.add("mbg", data);
 		cb(data);
@@ -2795,7 +2796,7 @@ scout.sgvfetch.gte = function(gte, cb) {
 scout.currentprofilefetch = function(cb) {
 	var parsed = "";
 	parsed += "&ts=" + (+new Date());
-	superagent.get(scout.config.urls.apiRoot + scout.config.urls.currentProfile+"?"+parsed, function(resp) {
+	scout.superagent.get(scout.config.urls.apiRoot + scout.config.urls.currentProfile+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		scout.ds.add("profile", [data]);
 		if(!!cb) cb(data);
@@ -2864,7 +2865,7 @@ scout.device = {
 	 * Get count number of device statuses
 	 */
 	fetchStatus: function(count, cb) {
-		superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
+		scout.superagent.get(scout.config.urls.apiRoot + scout.config.urls.deviceStatus + "?count=" + parseInt(count) + "&ts=" + (+new Date()), function(resp) {
 			var data = JSON.parse(resp.text);
 			scout.ds.add('devicestatus', data);
 			cb(data);
@@ -2930,7 +2931,7 @@ scout.trfetch = function(args, cb) {
 	if (args.eventType) parsed += "&find[eventType]=" + escape(args.eventType);
 	parsed += "&ts=" + (+new Date())
 	console.debug("trfetch", args, parsed);
-	superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
+	scout.superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
 		var data = JSON.parse(resp.text);
 		scout.ds.add("tr", scout.ds._excludeBasalFromTreatments(data));
 		scout.ds.add("mbg", scout.ds._convertMbgsFromTreatments(data, false));
@@ -3257,7 +3258,7 @@ scout.ws = {
 		    var history = 48;
 		    socket.emit('authorize', {
 		        client: 'web',
-		        secret: null,
+		        secret: scout.config.urls.apiSecret,
 		        token: null,
 		        history: history
 		    }, function authCallback(data) {
@@ -3288,7 +3289,7 @@ scout.ws = {
 		    var history = 48;
 		    socket.emit('authorize', {
 		        client: 'web',
-		        secret: null,
+		        secret: scout.config.urls.apiSecret,
 		        token: null,
 		        history: history
 		    }, function authCallback(data) {
@@ -3349,6 +3350,20 @@ scout.init = {
 		scr.src = scout.config.urls.domainRoot + scout.config.urls.socketio_path + scout.config.urls.socketio_js;
 		scr.onload = scout.ws.silentInit;
 		document.body.appendChild(scr);
+	},
+
+	initSuperagent: function() {
+		scout.superagent = superagent;
+		scout.superagent.get = function(url, data, fn){
+			var req = superagent('GET', url);
+			if (scout.config.urls.apiSecret) {
+				req.header['api-secret'] = scout.config.urls.apiSecret;
+			}
+			if ('function' == typeof data) fn = data, data = null;
+			if (data) req.query(data);
+			if (fn) req.end(fn);
+			return req;
+		  };
 	}
 };
 
@@ -3426,6 +3441,7 @@ window.onload = function() {
 		var arg = window.location.search.split('sgvLength=');
 		scout.sgv.currentLength = parseInt(arg[1].split('&')[0]);
 	}
+	scout.init.initSuperagent();
 	scout.sgv.primaryInit();
 	scout.init.fetch();
 	scout.util.updateTimeago();
