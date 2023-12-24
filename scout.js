@@ -28,6 +28,7 @@ var scout = {
             units_graph_max: 3,
             units_graph_reversed: true,
 			default_graph_length: 12,
+			filter_uploader: null,
 		},
 		mbg: {
 			radius: 5
@@ -1990,6 +1991,9 @@ scout.ds = {
 		for (var i=0; i<data.length; i++) {
 			var itemDate;
 			if (type == 'sgv' || type == 'mbg') {
+				if (scout.config.sgv.filter_uploader != null && data[i]['device'].indexOf(scout.config.sgv.filter_uploader) == -1) {
+					continue;
+				}
 				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
 				if (fl.length == 0) {
 					cat.push(scout.ds._fixSgvDirectionWrapper(data[i]));
@@ -3465,6 +3469,10 @@ window.onload = function() {
 	if (window.location.search.indexOf('sgvLength=') != -1) {
 		var arg = window.location.search.split('sgvLength=');
 		scout.sgv.currentLength = parseInt(arg[1].split('&')[0]);
+	}
+	if (window.location.search.indexOf('sgvFilterUploader=') != -1) {
+		var arg = window.location.search.split('sgvFilterUploader=');
+		scout.config.sgv.filter_uploader = arg[1].split('&')[0];
 	}
 	scout.init.initSuperagent();
 	scout.sgv.primaryInit();
