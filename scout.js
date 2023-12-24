@@ -2074,7 +2074,10 @@ scout.ds = {
 		if (sgv['direction'] == 'Flat' || sgv['direction'] == 'NONE') {
 			if (sgv['delta'] === undefined) {
 				console.error('null delta', sgv);
-			} else if (Math.abs(sgv['delta']) >= 5) {
+			} else if (
+			  Math.abs(sgv['delta']) >= 5 ||
+			  sgv['direction'] == 'NONE' // xDrip4iOS occasionally reports 'NONE' for 'Flat' with dexcom share
+			) {
 				sgv['direction'] = scout.ds._calcSgvDirection(sgv['delta']);
 				console.debug('fixSgvDirection: delta '+sgv['delta']+' fixed with '+sgv['direction']);
 			}
