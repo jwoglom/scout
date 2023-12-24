@@ -1994,12 +1994,12 @@ scout.ds = {
 				if (scout.config.sgv.filter_uploader != null && data[i]['device'].indexOf(scout.config.sgv.filter_uploader) == -1) {
 					continue;
 				}
-				var fl = cat.filter(function(e) { return e['date'] == data[i]['date']; });
+				var fl = cat.filter(function(e) { return e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i]); });
 				if (fl.length == 0) {
 					cat.push(scout.ds._fixSgvDirectionWrapper(data[i]));
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
-					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != fl[0]['date']; });
+					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != data[i]['date'] && scout.ds._sameDevice(e, data[i]); });
 					scout.ds[type].push(scout.ds._addReplaceConvertedSgv(data[i], fl[0]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
@@ -2180,7 +2180,11 @@ scout.ds = {
 		for (var i=0; i<sgvs.length; i++) {
 			var prv;
 			if (i > 0) {
-				prv = sgvs[i-1]['mgdl'];
+				if (i > 1 && !scout.ds._sameDevice(sgvs[i-1], sgvs[i])) {
+					prv = sgvs[i-2]['mgdl'];
+				} else {
+					prv = sgvs[i-1]['mgdl'];
+				}
 			} else {
 				var latest = scout.ds.getLatest('sgv');
 				prv = latest ? latest['sgv'] : null;
@@ -2189,6 +2193,29 @@ scout.ds = {
 		}
 		console.debug("convertSgvs done: ", upd, "from:", sgvs);
 		return upd;
+	},
+
+	/*
+	 * return true if the SGV objects are from the same uploader device
+	 * (e.g., xDrip, dexcom share, etc), which is used with the sgv
+	 * uploader filter to ensure accurate deltas. Ensures that separate
+	 * device entries from the same uploader like "xDrip-DexcomG5 G6 Native"
+	 * and "xDrip-DexcomG5 G6 Native::Backfill" are treated identically.
+	 */
+	_sameDevice: function(sgvA, sgvB) {
+		if (sgvA['device'] == sgvB['device']) {
+			return true;
+		}
+
+		if (sgvA['device'].split(' ')[0] == sgvB['device'].split(' ')[0]) {
+			return true;
+		}
+
+		if (sgvA['device'].split('::')[0] == sgvB['device'].split('::')[0]) {
+			return true;
+		}
+
+		return false;
 	},
 
 	/*
