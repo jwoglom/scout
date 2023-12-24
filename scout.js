@@ -2068,9 +2068,10 @@ scout.ds = {
 	/*
 	 * Fix the direction of a sgv object when it's stuck on a direction
 	 * of Flat (bug in xDrip nightly using G5 algorithm)
+	 * or NONE (xDrip4iOS / dexcom share)
 	 */
 	_fixSgvDirection: function(sgv) {
-		if (sgv['direction'] == 'Flat') {
+		if (sgv['direction'] == 'Flat' || sgv['direction'] == 'NONE') {
 			if (sgv['delta'] === undefined) {
 				console.error('null delta', sgv);
 			} else if (Math.abs(sgv['delta']) >= 5) {
