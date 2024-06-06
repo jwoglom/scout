@@ -1994,12 +1994,16 @@ scout.ds = {
 				if (scout.config.sgv.filter_uploader != null && data[i]['device'].indexOf(scout.config.sgv.filter_uploader) == -1) {
 					continue;
 				}
-				var fl = cat.filter(function(e) { return e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i]); });
+				var fl = cat.filter(function(e) {
+					return (e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i])) || (!!e['dateString'] && !!data[i]['dateString'] && e['dateString'] == data[i]['dateString']);
+				});
 				if (fl.length == 0) {
 					cat.push(scout.ds._fixSgvDirectionWrapper(data[i]));
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
-					scout.ds[type] = scout.ds[type].filter(function(e) { return e['date'] != data[i]['date'] && scout.ds._sameDevice(e, data[i]); });
+					scout.ds[type] = scout.ds[type].filter(function(e) {
+						return e['date'] != data[i]['date'];
+					});
 					scout.ds[type].push(scout.ds._addReplaceConvertedSgv(data[i], fl[0]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
 					adds++;
