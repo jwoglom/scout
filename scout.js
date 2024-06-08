@@ -2064,7 +2064,7 @@ scout.ds = {
 	 */
 	_addReplaceConvertedSgv: function(sgvNew, sgvOld) {
 		function isValidDelta(sgv) {
-			return !!sgvNew['delta'] || sgvNew['delta'] == 0;
+			return !!sgv['delta'];
 		}
 		if (!isValidDelta(sgvNew) && isValidDelta(sgvOld)) {
 			sgvNew['delta'] = sgvOld['delta'];
@@ -2196,7 +2196,7 @@ scout.ds = {
 		for (var i=0; i<sgvs.length; i++) {
 			var prv;
 			if (i > 0) {
-				if (i > 1 && !scout.ds._sameDevice(sgvs[i-1], sgvs[i])) {
+				if (i > 1 && !scout.ds._sameDevice(sgvs[i-1], sgvs[i]) && scout.ds._sameDevice(sgvs[i-2], sgvs[i])) {
 					prv = sgvs[i-2]['mgdl'];
 				} else {
 					prv = sgvs[i-1]['mgdl'];
