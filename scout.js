@@ -2005,7 +2005,7 @@ scout.ds = {
 						return e['date'] != data[i]['date'];
 					});
 					scout.ds[type].push(scout.ds._addReplaceConvertedSgv(data[i], fl[0]));
-					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl, data[i]);
+					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl[0], data[i]);
 					adds++;
                 }
 				itemDate = moment(data[i]['date']);
@@ -2063,10 +2063,18 @@ scout.ds = {
 	 * a duplicate sgv entry.
 	 */
 	_addReplaceConvertedSgv: function(sgvNew, sgvOld) {
-		if (sgvNew['delta'] === undefined && sgvOld['delta'] !== undefined) {
-			sgvNew['delta'] = sgvOld['delta'];
+		function isValidDelta(sgv) {
+			return !!sgvNew['delta'] || sgvNew['delta'] == 0;
 		}
-		return scout.ds._fixSgvDirectionWrapper(sgvNew);
+		if (!isValidDelta(sgvNew) && isValidDelta(sgvOld)) {
+			sgvNew['delta'] = sgvOld['delta'];
+			return scout.ds._fixSgvDirectionWrapper(sgvNew);
+		} else if (isValidDelta(sgvNew) && !isValidDelta(sgvOld)) {
+			sgvOld['delta'] = sgvNew['delta'];
+			return scout.ds._fixSgvDirectionWrapper(sgvOld);
+		} else {
+			return scout.ds._fixSgvDirectionWrapper(sgvNew);
+		}
 	},
 
 	/*
