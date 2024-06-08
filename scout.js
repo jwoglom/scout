@@ -2140,13 +2140,13 @@ scout.ds = {
 			'dateString': moment(sgv['millis']).format(),
 			'sysTime': moment(sgv['millis']).format(),
 			'type': 'sgv',
-			'delta': prev != null ? (sgv['mgdl'] || sgv['sgv'])-prev : 0,
+			'delta': prev != null ? (sgv['mgdl'] || sgv['sgv'])-prev : undefined,
 			'device': sgv['device'],
 			'direction': sgv['direction'],
 			'filtered': sgv['filtered'],
 			'noise': sgv['noise'],
 			'rssi': sgv['rssi'],
-			'sgv': sgv['mgdl'],
+			'sgv': sgv['mgdl'] || sgv['sgv'],
 			'unfiltered': sgv['unfiltered'],
 			'_id': sgv['mills'],
 			'converted': true
@@ -2193,6 +2193,8 @@ scout.ds = {
 	 */
 	_convertSgvs: function(sgvs) {
 		var upd = [];
+		// ascending (oldest to newest)
+		var sgvs = sgvs.sort((a, b) => a['mills'] - b['mills'])
 		for (var i=0; i<sgvs.length; i++) {
 			var prv;
 			if (i > 0) {
