@@ -2064,7 +2064,7 @@ scout.ds = {
 	 */
 	_addReplaceConvertedSgv: function(sgvNew, sgvOld) {
 		function isValidDelta(sgv) {
-			return !!sgv['delta'];
+			return !(sgv['delta'] == null || sgv['delta'] == undefined);
 		}
 		if (!isValidDelta(sgvNew) && isValidDelta(sgvOld)) {
 			sgvNew['delta'] = sgvOld['delta'];
@@ -2195,18 +2195,33 @@ scout.ds = {
 		var upd = [];
 		// ascending (oldest to newest)
 		var sgvs = sgvs.sort((a, b) => a['mills'] - b['mills'])
+		var latest = scout.ds.getLatest('sgv');
 		for (var i=0; i<sgvs.length; i++) {
-			var prv;
-			if (i > 0) {
-				if (i > 1 && !scout.ds._sameDevice(sgvs[i-1], sgvs[i]) && scout.ds._sameDevice(sgvs[i-2], sgvs[i])) {
-					prv = sgvs[i-2]['mgdl'];
-				} else {
-					prv = sgvs[i-1]['mgdl'];
+			var prv = null;
+			var prvitem = null;
+			if (i == 0 && !!latest) {
+				prvitem = latest;
+				prv = latest['sgv'];
+			} else if (i > 0) {
+				var prvitem = sgvs[i-1];
+				if (Math.abs(prvitem['mills'] - sgvs[i]['mills']) < 150000) {
+					// same reading
+					if (i > 1 && Math.abs(sgvs[i-2]['mills'] - sgvs[i]['mills']) > 150000) {
+						prvitem = sgvs[i-2];
+					} else if (i == 1) {
+						prvitem = latest;
+					}
+				} else if (Math.abs(prvitem['mills'] - sgvs[i]['mills']) > 450000) {
+					// if we get some weird prior reading, don't delta from it
+					if (i > 1) {
+						prvitem = sgvs[i-2];
+					} else {
+						prvitem = latest;
+					}
 				}
-			} else {
-				var latest = scout.ds.getLatest('sgv');
-				prv = latest ? latest['sgv'] : null;
+				prv = prvitem['sgv'] || prvitem['mgdl'];
 			}
+			console.debug('convertSgv', sgvs[i], prvitem);
 			upd[i] = scout.ds._convertSgv(sgvs[i], prv);
 		}
 		console.debug("convertSgvs done: ", upd, "from:", sgvs);
@@ -2403,6 +2418,12 @@ scout.ds = {
 	getLatest: function(type) {
 		var typ = scout.ds[type];
 		return typ[typ.length-1];
+	},
+	
+	getSecondLatest: function(type) {
+		var typ = scout.ds[type];
+		if (typ.length <= 2) return null;
+		return typ[typ.length-2];
 	}
 };
 
