@@ -2201,6 +2201,9 @@ scout.ds = {
 			var prvitem = null;
 			if (i == 0 && !!latest) {
 				prvitem = latest;
+				if (Math.abs(prvitem['date'] - sgvs[i]['mills']) < 150000) {
+					prvitem = scout.ds.getSecondLatest('sgv');
+				}
 				prv = latest['sgv'];
 			} else if (i > 0) {
 				var prvitem = sgvs[i-1];
