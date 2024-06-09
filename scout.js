@@ -2228,7 +2228,7 @@ scout.ds = {
 						prvitem = latest;
 					}
 				}
-				prv = prvitem['sgv'] || prvitem['mgdl'];
+				prv = !!prvitem ? prvitem['sgv'] || prvitem['mgdl'] : null;
 			}
 			console.debug('convertSgv', sgvs[i], prvitem);
 			upd[i] = scout.ds._convertSgv(sgvs[i], prv);
