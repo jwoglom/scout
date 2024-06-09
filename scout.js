@@ -1967,6 +1967,7 @@ scout.sgv = {
  */
 scout.ds = {
 	sgv: [],
+	sgvMongoIds: [],
 	tr: [],
 	devicestatus: [],
 	mbg: [],
@@ -1995,10 +1996,11 @@ scout.ds = {
 					continue;
 				}
 				var fl = cat.filter(function(e) {
-					return (e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i])) || (!!e['dateString'] && !!data[i]['dateString'] && e['dateString'] == data[i]['dateString']);
+					return (e['_id'] == data[i]['_id']) || (e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i])) || (!scout.ds._sameDevice(e, data[i]) && Math.abs(e['date'] - data[i]['date']) < 150000);
 				});
 				if (fl.length == 0) {
 					cat.push(scout.ds._fixSgvDirectionWrapper(data[i]));
+					scout.ds.sgvMongoIds.push(data[i]['_id']);
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
 					scout.ds[type] = scout.ds[type].filter(function(e) {
@@ -2066,12 +2068,16 @@ scout.ds = {
 		function isValidDelta(sgv) {
 			return !(sgv['delta'] == null || sgv['delta'] == undefined);
 		}
+		if (sgvNew['device'] != sgvOld['device']) {
+			var newParts = sgvNew['device'].split(', ');
+			var oldParts = sgvOld['device'].split(', ');
+			sgvNew['device'] = ([...new Set([...oldParts, ...newParts])].sort()).join(', ');
+		}
 		if (!isValidDelta(sgvNew) && isValidDelta(sgvOld)) {
 			sgvNew['delta'] = sgvOld['delta'];
 			return scout.ds._fixSgvDirectionWrapper(sgvNew);
 		} else if (isValidDelta(sgvNew) && !isValidDelta(sgvOld)) {
-			sgvOld['delta'] = sgvNew['delta'];
-			return scout.ds._fixSgvDirectionWrapper(sgvOld);
+			return scout.ds._fixSgvDirectionWrapper(sgvNew);
 		} else {
 			return scout.ds._fixSgvDirectionWrapper(sgvNew);
 		}
@@ -3258,6 +3264,9 @@ scout.uploaderBat = {
 	 * Format the template data for status of the uploader
 	 */
 	currentStatusData: function(data) {
+		if (!data) {
+			return {};
+		}
 		var deviceType = document.getElementById("uploader_bat_devicetype");
 		if (deviceType) deviceType = deviceType.value;
 		else deviceType = "PHONE";
@@ -3270,7 +3279,9 @@ scout.uploaderBat = {
 				break;
 			}
 		}
-		if (!latest) return {};
+		if (!latest) {
+			latest = data[data.length-1];
+		}
 		var created = moment(latest['created_at']);
 
 		return {
