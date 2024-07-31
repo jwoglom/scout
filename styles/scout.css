@@ -152,6 +152,15 @@ table.hourly_pct_stats td {
     }
 }
 
+@media (max-width: 850px) {
+    #overview_sgv {
+        width: 60%;
+    }
+    #overview_dir {
+        width: 40%;
+    }
+}
+
 @media (max-width: 600px) {
     #overview_sgv {
         width: 60%;
@@ -190,6 +199,17 @@ table.hourly_pct_stats td {
     #overview_sgv h3.current-subhead {
         margin-left: 0;
         margin-right: 0;
+    }
+}
+
+@media (max-width: 375px) {
+    #overview_sgv {
+        width: 100%;
+    }
+    #overview_dir {
+        width: 100%;
+        height: 50%;
+        zoom: 0.4;
     }
 }
 
