@@ -1987,6 +1987,7 @@ scout.ds = {
 	 * the data. Otherwise, ensure no duplication by checking the _id.
 	 */
 	_add: function(type, data) {
+		var HALF_INTERVAL = 150000; // 2.5 min
 		var cat = scout.ds[type];
 		var adds = 0;
 		for (var i=0; i<data.length; i++) {
@@ -1996,10 +1997,18 @@ scout.ds = {
 					continue;
 				}
 				var fl = cat.filter(function(e) {
-					return (e['_id'] == data[i]['_id']) || (e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i])) || (!scout.ds._sameDevice(e, data[i]) && Math.abs(e['date'] - data[i]['date']) < 150000);
+					return (e['_id'] == data[i]['_id']) || (e['date'] == data[i]['date'] && scout.ds._sameDevice(e, data[i]));
 				});
 				if (fl.length == 0) {
-					cat.push(scout.ds._fixSgvDirectionWrapper(data[i]));
+					var diffDeviceFl = cat.filter(function(e) {
+						return (!scout.ds._sameDevice(e, data[i]) && Math.abs(e['date'] - data[i]['date']) < HALF_INTERVAL);
+					});
+					var fixed = scout.ds._fixSgvDirectionWrapper(data[i]);
+					if (diffDeviceFl.length > 0 && (fixed['delta'] == null || fixed['delta'] == undefined)) {
+						console.debug('sgv to add does not have delta, trying diffDeviceFl', fixed, diffDeviceFl);
+						fixed['delta'] = diffDeviceFl[0]['delta'];
+					}
+					cat.push(fixed);
 					scout.ds.sgvMongoIds.push(data[i]['_id']);
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
@@ -2198,6 +2207,8 @@ scout.ds = {
 	 * Convert multiple sgv's
 	 */
 	_convertSgvs: function(sgvs) {
+		var HALF_INTERVAL = 150000; // 2.5 min
+		var STALE_INTERVAL = 450000 // 7.5 min
 		var upd = [];
 		// ascending (oldest to newest)
 		var sgvs = sgvs.sort((a, b) => a['mills'] - b['mills'])
@@ -2207,20 +2218,20 @@ scout.ds = {
 			var prvitem = null;
 			if (i == 0 && !!latest) {
 				prvitem = latest;
-				if (Math.abs(prvitem['date'] - sgvs[i]['mills']) < 150000) {
+				if (Math.abs(prvitem['date'] - sgvs[i]['mills']) < HALF_INTERVAL) {
 					prvitem = scout.ds.getSecondLatest('sgv');
 				}
 				prv = latest['sgv'];
 			} else if (i > 0) {
 				var prvitem = sgvs[i-1];
-				if (Math.abs(prvitem['mills'] - sgvs[i]['mills']) < 150000) {
+				if (Math.abs(prvitem['mills'] - sgvs[i]['mills']) < HALF_INTERVAL) {
 					// same reading
-					if (i > 1 && Math.abs(sgvs[i-2]['mills'] - sgvs[i]['mills']) > 150000) {
+					if (i > 1 && Math.abs(sgvs[i-2]['mills'] - sgvs[i]['mills']) > HALF_INTERVAL) {
 						prvitem = sgvs[i-2];
 					} else if (i == 1) {
 						prvitem = latest;
 					}
-				} else if (Math.abs(prvitem['mills'] - sgvs[i]['mills']) > 450000) {
+				} else if (Math.abs(prvitem['mills'] - sgvs[i]['mills']) > STALE_INTERVAL) {
 					// if we get some weird prior reading, don't delta from it
 					if (i > 1) {
 						prvitem = sgvs[i-2];
