@@ -2372,8 +2372,17 @@ scout.ds = {
 	 * treatment and mbg data updates the graph
 	 */
 	_typeCallback: function(type) {
+		var HALF_INTERVAL = 150000; // 2.5 min
 		if (type == 'sgv') {
-			scout.current.loadSgv(scout.ds.getLatest('sgv'));
+			var latest = scout.ds.getLatest('sgv');
+			var sLatest = scout.ds.getSecondLatest('sgv');
+			if (sLatest && Math.abs(latest['date'] - sLatest['date']) < HALF_INTERVAL) {
+				if (!latest['delta'] && !!sLatest['delta']) {
+					console.warn('replaced delta in typeCallback!');
+					latest['delta'] = sLatest['delta'];
+				}
+			}
+			scout.current.loadSgv(latest);
 
 
 			scout.sgv.primaryDSCallback();
@@ -2556,7 +2565,10 @@ scout.current = {
 
 		var mins_diff = scout.current.getCurrentMinDiff(entry);
 		if (mins_diff <= -1) {
-			console.info("updateCur new backfill entry with diff=" + mins_diff);
+			console.info("updateCur new backfill entry with diff=" + mins_diff + " current=", scout.current.currentEntry, "new="+entry);
+			if (entry['delta'] != scout.current.currentEntry['delta']) {
+				return true;
+			}
 			return false;
 		}
 
