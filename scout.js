@@ -2241,6 +2241,11 @@ scout.ds = {
 				}
 				prv = !!prvitem ? prvitem['sgv'] || prvitem['mgdl'] : null;
 			}
+			if (prvitem && Math.abs(sgvs[i]['mills'] - prvitem['mills']) > STALE_INTERVAL) {
+				console.warn('invalid convertSgv, not converting delta', sgvs[i], prvitem);
+				prvitem = null;
+				prv = null;
+			}
 			console.debug('convertSgv', sgvs[i], prvitem);
 			upd[i] = scout.ds._convertSgv(sgvs[i], prv);
 		}
@@ -2373,13 +2378,20 @@ scout.ds = {
 	 */
 	_typeCallback: function(type) {
 		var HALF_INTERVAL = 150000; // 2.5 min
+		var STALE_INTERVAL = 450000 // 7.5 min
 		if (type == 'sgv') {
 			var latest = scout.ds.getLatest('sgv');
 			var sLatest = scout.ds.getSecondLatest('sgv');
 			if (sLatest && Math.abs(latest['date'] - sLatest['date']) < HALF_INTERVAL) {
 				if (!latest['delta'] && !!sLatest['delta']) {
-					console.warn('replaced delta in typeCallback!');
+					console.warn('replaced delta in typeCallback from other device delta', latest, sLatest);
 					latest['delta'] = sLatest['delta'];
+				}
+			} else if (sLatest && Math.abs(latest['date'] - sLatest['date']) < STALE_INTERVAL) {
+				var manualDelta = latest['sgv'] - sLatest['sgv'];
+				if (!latest['delta']) {
+					console.warn('replaced delta in typeCallback via computed delta', latest, sLatest, manualDelta);
+					latest['delta'] = manualDelta;
 				}
 			}
 			scout.current.loadSgv(latest);
