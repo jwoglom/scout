@@ -3317,6 +3317,16 @@ scout.uploaderBat = {
 		if (!latest) {
 			latest = data[data.length-1];
 		}
+		if (!latest) {
+			return {
+				"current_bat": "",
+				"current_bat_date": "",
+				"readings": 0,
+				"device_type": "",
+				"devicetype_index": "",
+				"device_name": ""
+			};
+		}
 		var created = moment(latest['created_at']);
 
 		return {
