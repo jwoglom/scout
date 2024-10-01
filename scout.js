@@ -58,6 +58,7 @@ var scout = {
 		custom_event_types: {
 			'Sleep': unescape('%uD83D%uDCA4'),
 			'Basal Suspension': unescape('%u274C'),
+			'Basal Resume': unescape('%u2714'),
 			'Sensor Start': unescape('%uD83C%uDFC1'),
 			'Site Change': unescape('%uD83D%uDD04'),
 			'Sensor Stop': unescape('%uD83D%uDEA9'),
@@ -65,6 +66,7 @@ var scout = {
 		basal_event_types: [
 			'Sleep',
 			'Basal Suspension',
+			'Basal Resume',
 			'Site Change',
 		],
 		treatment_default_y_coord: 80,
