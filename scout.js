@@ -252,6 +252,22 @@ scout.util = {
 		return delta > 0 ? '+'+scout.util.round(delta, 1) : scout.util.round(delta, 1);
 	},
 
+	currentDelta: function() {
+		var firstTs = null;
+		var firstBg = null;
+		var expectedStepMs = 2.5 * 60 * 1000;
+		for (var i=0; i<Math.min(scout.ds.sgv.length, 6); i++) {
+			if (firstTs == null) {
+				firstTs = scout.ds.sgv[i].date;
+				firstBg = scout.ds.sgv[i].sgv;
+			} else {
+				if (Math.abs(firstTs - scout.ds.sgv[i].date) >= expectedStepMs) {
+					return firstBg - scout.ds.sgv[i].sgv;
+				}
+			}		
+		}
+	},
+
 	modifyFavicon: function(href) {
 		var link = document.querySelector("link[rel='icon']");
 		link.setAttribute('type', 'image/png');
@@ -2488,6 +2504,9 @@ scout.current = {
 		var sgvText = cur['sgv'];
 		var direction = scout.util.directionToArrow(cur['direction']);
 		var delta = scout.util.fmtDelta(cur['delta']);
+		if (!delta) {
+			delta = scout.util.fmtDelta(scout.util.currentDelta());
+		}
 		var noise = scout.util.noise(cur['noise']);
 
 		var curSgv = document.querySelector("#current_sgv");
@@ -3311,7 +3330,7 @@ scout.uploaderBat = {
 		
 		var latest;
 		for (var i=0; i<data.length; i++) {
-			if (data[i]['uploader']['type'] == deviceType) {
+			if (data[i] && data[i]['uploader'] && data[i]['uploader']['type'] == deviceType) {
 				latest = data[i];
 				break;
 			}
@@ -3619,3 +3638,4 @@ window.onload = function() {
 		document.body.appendChild(style);
 	}
 };
+
