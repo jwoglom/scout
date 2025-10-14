@@ -3351,7 +3351,7 @@ scout.uploaderBat = {
 		var created = moment(latest['created_at']);
 
 		return {
-			"current_bat": latest["uploader"]["battery"],
+			"current_bat": latest && latest["uploader"] ? latest["uploader"]["battery"] : "",
 			"current_bat_date": created.format(scout.config.timeFormat+" a"),
 			"readings": scout.uploaderBat.getReadingsCount(),
 			"device_type": deviceType,
@@ -3638,4 +3638,5 @@ window.onload = function() {
 		document.body.appendChild(style);
 	}
 };
+
 
