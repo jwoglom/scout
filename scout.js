@@ -255,13 +255,16 @@ scout.util = {
 	currentDelta: function() {
 		var firstTs = null;
 		var firstBg = null;
+		var firstDevice = null;
 		var expectedStepMs = 2.5 * 60 * 1000;
+		var maxStepMs = 7.5 * 60 * 1000;
 		for (var i=0; i<Math.min(scout.ds.sgv.length, 6); i++) {
 			if (firstTs == null) {
 				firstTs = scout.ds.sgv[i].date;
 				firstBg = scout.ds.sgv[i].sgv;
+				firstDevice = scout.ds.sgv[i].device;
 			} else {
-				if (Math.abs(firstTs - scout.ds.sgv[i].date) >= expectedStepMs) {
+				if (Math.abs(firstTs - scout.ds.sgv[i].date) >= expectedStepMs && Math.abs(firstTs - scout.ds.sgv[i].date) < maxStepMs && firstDevice == scout.ds.sgv[i].device) {
 					return firstBg - scout.ds.sgv[i].sgv;
 				}
 			}		
@@ -3638,6 +3641,7 @@ window.onload = function() {
 		document.body.appendChild(style);
 	}
 };
+
 
 
 
