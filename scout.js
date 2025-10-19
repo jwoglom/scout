@@ -2504,7 +2504,7 @@ scout.current = {
 		var sgvText = cur['sgv'];
 		var direction = scout.util.directionToArrow(cur['direction']);
 		var delta = scout.util.fmtDelta(cur['delta']);
-		if (!delta) {
+		if (!cur['delta']) {
 			delta = scout.util.fmtDelta(scout.util.currentDelta());
 		}
 		var noise = scout.util.noise(cur['noise']);
@@ -3638,5 +3638,6 @@ window.onload = function() {
 		document.body.appendChild(style);
 	}
 };
+
 
 
