@@ -424,10 +424,10 @@ scout.chartConf = {
 							if (!!data.trObj['carbs']) {
 								return [
 									"Carbs: "+data.trObj['carbs'],
-									data.trObj['notes'].split('\n')
+									!!data.trObj['notes'] ? data.trObj['notes'].split('\n') : []
 								];
 							}
-							return data.trObj['notes'].split('\n');
+							return !!data.trObj['notes'] ? data.trObj['notes'].split('\n') : [];
 		        		} else if (data['basalObj']) {
                             var duration = Math.round(data.basalObj['duration']);
                             if (data['endBasal']) {
@@ -435,7 +435,7 @@ scout.chartConf = {
                                 var sinceTimeStr = sinceTime.format('h:mma');
                                 return [
                                     "Duration: " + duration + " min" + (duration > 1 ? 's' : '') + " (since " + sinceTimeStr + ")",
-                                    "Reason: "+data.basalObj['reason']
+                                    !!data.basalObj['reason'] ? "Reason: "+data.basalObj['reason'] : ''
                                 ];
                             } else {
                                 var untilTime = moment(data.basalObj['date']);
@@ -443,7 +443,7 @@ scout.chartConf = {
                                 var untilTimeStr = untilTime.format('h:mma');
                                 return [
                                     "Duration: " + duration + " min" + (duration > 1 ? 's' : '') + " (until "+untilTimeStr+")",
-                                    "Reason: "+data.basalObj['reason']
+                                    !!data.basalObj['reason'] ? "Reason: "+data.basalObj['reason'] : ''
                                 ];
                             }
 						}
@@ -3333,7 +3333,7 @@ scout.uploaderBat = {
 		
 		var latest;
 		for (var i=0; i<data.length; i++) {
-			if (data[i] && data[i]['uploader'] && data[i]['uploader']['type'] == deviceType) {
+			if (data[i] && !!data[i]['uploader'] && data[i]['uploader']['type'] == deviceType) {
 				latest = data[i];
 				break;
 			}
@@ -3341,7 +3341,7 @@ scout.uploaderBat = {
 		if (!latest) {
 			latest = data[data.length-1];
 		}
-		if (!latest) {
+		if (!latest || !latest["uploader"]) {
 			return {
 				"current_bat": "",
 				"current_bat_date": "",
