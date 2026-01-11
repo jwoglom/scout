@@ -13,10 +13,12 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1.0" />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
 	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Open+Sans" />
-	<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-orange.min.css" />
+	<!--link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-orange.min.css" /-->
+	<link rel="stylesheet" href="styles/mdl-1.3.0-material.indigo-orange.min.css" />
 	<link rel="stylesheet" href="styles/mdl-default.css" />
 	<link rel="stylesheet" href="styles/scout.css" />
-	<script defer type="text/javascript" src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+	<!--script defer type="text/javascript" src="https://code.getmdl.io/1.3.0/material.min.js"></script-->
+	<script defer type="text/javascript" src="scripts/mdl-1.3.0-material.min.js"></script>
 
 	<script type="text/javascript" src="scripts/moment.min.js"></script>
 	<script type="text/javascript" src="scripts/Chart.js"></script>
@@ -44,6 +46,7 @@
 				<a onclick="scout.sensorAge.init()" href="#sensor_age" class="mdl-layout__tab">Sensor Age</a>
 				<a onclick="scout.uploaderBat.init()" href="#uploader_bat" class="mdl-layout__tab">Uploader Battery</a>
 				<a onclick="scout.dailyBasal.init()" href="#daily_basal" class="mdl-layout__tab">Daily Basal</a>
+				<a onclick="scout.hba1c.init()" href="#hba1c" class="mdl-layout__tab">HbA1c</a>
 			</div>
 		</header>
 		<main class="mdl-layout__content">
@@ -294,7 +297,7 @@
 									</div>
 									<div class="mdl-textfield mdl-js-textfield">
 										<input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="daily_basal_period">
-										<label class="mdl-textfield__label" for="sample2">Period (minutes); default 30</label>
+										<label class="mdl-textfield__label" for="daily_basal_period">Period (minutes); default 30</label>
 										<span class="mdl-textfield__error">Input is not a number!</span>
 									</div>
 									<br />
@@ -330,6 +333,59 @@
 											<th>Profile Basal</th>
 											<th>Effective Basal</th>
 											{theadth}
+										</tr>
+									</thead>
+									{tbody}
+								</table>
+							</div>
+						</div>
+	          		</section>
+	          	</script>
+			</div>
+			<div class="mdl-layout__tab-panel" id="hba1c">
+				<section class="hba1c_section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp">
+						<div class="mdl-card mdl-cell mdl-cell--6-col-desktop mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+							<div class="mdl-card__supporting-text">
+								<form onsubmit="return false" id="hba1c_form">
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="hba1c_start" placeholder="">
+									    <label class="mdl-textfield__label" for="hba1c_start">Start Date</label>
+									</div>
+									<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+									    <input class="mdl-textfield__input" type="date" id="hba1c_end" placeholder="">
+									    <label class="mdl-textfield__label" for="hba1c_end">End Date</label>
+									</div>
+									<div class="mdl-textfield mdl-js-textfield">
+										<input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="hba1c_period">
+										<label class="mdl-textfield__label" for="hba1c_period">Period (days); default 14</label>
+										<span class="mdl-textfield__error">Input is not a number!</span>
+									</div>
+									<br />
+									<button class="mdl-button mdl-js-button mdl-button--raised" onclick="scout.hba1c.submitForm()">
+										View
+									</button> &nbsp; &nbsp; <button class="mdl-button mdl-js-button" onclick="scout.hba1c.adjustFormRange(-7, -7)">
+										&#10094; <!-- back -->
+									</button> &nbsp; &nbsp; <button class="mdl-button mdl-js-button" onclick="scout.hba1c.adjustFormRange(7, 7)">
+										&#10095; <!-- forward -->
+									</button>
+								</form>
+							</div>
+						</div>
+						
+						<div class="mdl-spinner mdl-js-spinner is-active center-spinner hidden" id="hba1c_spinner"></div>
+	          		</section>
+				<script type="text/template" id="hba1c_tpl">
+					<section class="hourly_pct_section dynamic-section section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="hba1c_section_{id}">
+						<div class="card-close" onclick="this.parentElement.remove()"></div>
+						<div class="mdl-card mdl-cell mdl-cell--12-col-desktop mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+							<div class="mdl-card__supporting-text">
+								<h4>{header_date}</h4>
+								<table class="hba1c_table mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+									<thead>
+										<tr>
+											<th>Week</th>
+											<th>Laboratory HbA1c</th>
+											<th>Estimated HbA1c</th>
 										</tr>
 									</thead>
 									{tbody}
