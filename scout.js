@@ -310,7 +310,7 @@ scout.util = {
 	},
 
 	isBackfilledSgv: function(sgv) {
-		return sgv['device'].indexOf('Backfill') != -1;
+		return sgv['device'] != null && sgv['device'].indexOf('Backfill') != -1;
 	},
 
 	isTransmitterDeviceStatus: function(ds) {
@@ -454,11 +454,11 @@ scout.chartConf = {
 	        			var dataset = data.datasets[tooltipItem.datasetIndex];
 		        		var data = dataset.data[tooltipItem.index];
 		        		if (data['trObj']) {
-	        				return data.trObj['enteredBy'].replace(scout.config.tooltip_device_strip, '').trim();
+	        				return (data.trObj['enteredBy'] || '').replace(scout.config.tooltip_device_strip, '').trim();
 	        			} else if (data['sgvObj']) {
-	        				return data.sgvObj['device'].replace(scout.config.tooltip_device_strip, '').trim();
+	        				return (data.sgvObj['device'] || '').replace(scout.config.tooltip_device_strip, '').trim();
 	        			} else if (data['basalObj']) {
-							return data.basalObj['enteredBy'].replace(scout.config.tooltip_device_strip, '').trim();
+							return (data.basalObj['enteredBy'] || '').replace(scout.config.tooltip_device_strip, '').trim();
 						}
 	        		}
 	        	}
@@ -947,6 +947,7 @@ scout.spinner = {
 		'hourlyPct': '#hourly_pct_spinner',
 		'uploaderBat': '#uploader_bat_spinner',
 		'dailyBasal': '#daily_basal_spinner',
+		'hba1c': '#hba1c_spinner',
 	},
 	
 	get: function(sp) {
@@ -1328,15 +1329,7 @@ scout.dailyBasal = {
 		return days;
 	},
 
-	/*
-	 * Generate the dictionary of templating data
-	 */
-	dataDict: function(profile, trs, id, dates, options) {
-		options = options || {};
-		var dict = {};
-		var days = scout.dailyBasal.getEachDay(dates[0], dates[1]);
-		console.info('dataDict', profile, trs, id, dates, days);
-
+	buildPerMin: function(profile, trs, days) {
 		var defaultPerMin = [];
 		var perMin = {};
 		days.forEach(day => perMin[day] = []);
@@ -1372,10 +1365,25 @@ scout.dailyBasal = {
 			console.debug(tr.absolute+' from '+start+' for '+duration+' min');
 		});
 
-		console.info('defaultPerMin', defaultPerMin);
+		return {"perMin": perMin, "defaultPerMin": defaultPerMin};
+	},
+
+	/*
+	 * Generate the dictionary of templating data
+	 */
+	dataDict: function(profile, trs, id, dates, options) {
+		options = options || {};
+		var dict = {};
+		var days = scout.dailyBasal.getEachDay(dates[0], dates[1]);
+		console.info('dataDict', profile, trs, id, dates, days);
+
+		var _perMin = scout.dailyBasal.buildPerMin(profile, trs, days);
+		var defaultPerMin = _perMin["defaultPerMin"];
+		var perMin = _perMin["perMin"];
+
+		console.info('perMin', _perMin);
 
 		dict['header_date'] = days[0] + ' - ' + days[days.length-1];
-
 		dict['perMin'] = perMin;
 
 		function hrmin(i) {
@@ -1425,6 +1433,184 @@ scout.dailyBasal = {
 		}
 		dict['tbody'] = tbody.outerHTML;
 
+		return dict;
+	}
+};
+
+scout.hba1c = {
+	init: function() {
+		var today = moment().format("YYYY-MM-DD");
+		var prev3months = moment().subtract({days: 365}).format("YYYY-MM-DD");
+		document.querySelector("#hba1c_start").value = prev3months;
+		document.querySelector("#hba1c_end").value = today;
+	},
+
+	submitForm: function() {
+		scout.spinner.start('hba1c');
+		var date1 = moment(document.querySelector("#hba1c_start").value);
+		var date2 = moment(document.querySelector("#hba1c_end").value);
+		var period = parseInt(document.querySelector("#hba1c_period").value); // days
+		scout.hba1c.addRange(moment.min(date1, date2).format(), moment.max(date1, date2).format(), {
+			"period": period
+		});
+	},
+	
+	adjustFormRange: function(sDelta, eDelta) {
+		document.querySelector("#hba1c_start").value = moment(document.querySelector("#hba1c_start").value).add(sDelta, 'days').format('YYYY-MM-DD');
+		document.querySelector("#hba1c_end").value = moment(document.querySelector("#hba1c_end").value).add(eDelta, 'days').format('YYYY-MM-DD');
+	},
+
+	chunkRange: function(st_date, end_date) {
+		var chunks = [];
+		var currentStart = st_date.clone();
+		
+		while (currentStart.isBefore(end_date)) {
+			var currentEnd = currentStart.clone().add(90, 'days');
+			chunks.push([
+				currentStart.format('YYYY-MM-DD'),
+				currentEnd.isAfter(end_date) ? end_date.format('YYYY-MM-DD') : currentEnd.format('YYYY-MM-DD')
+			]);
+			currentStart = currentEnd.add(1, 'day');
+		}
+		
+		return chunks;
+	},
+
+	addRange: function(st_date, end_date, options, cb) {
+		// fetch 90d at a time in batches
+		var allChunks = scout.hba1c.chunkRange(moment(st_date), moment(end_date));
+		console.info("addRange chunks: "+allChunks.length, allChunks);
+
+		var run = function(chunks, data, cb) {
+			if (!chunks || chunks.length == 0) return cb(data);
+			console.info("addRange chunk: "+chunks[0][0]+" "+chunks[0][1]);
+			scout.sgvfetch({"date": {"gte": chunks[0][0], "lte": chunks[0][1]}, "count": 99999}, function(sgvdata) {
+				chunks.pop(0);
+				run(chunks, data.concat(sgvdata), cb);
+			});
+		};
+
+		run(allChunks, [], function(sgvdata) {
+			scout.trfetch({"date": {"gte": st_date, "lte": end_date}, "count": 99999, "eventType": "HbA1c"}, function(a1cdata) {
+				scout.hba1c.embedSingle(a1cdata, sgvdata, [st_date, end_date], options, cb);
+			});
+		});
+	},
+
+	embedSingle: function(a1cdata, sgvdata, dates, options, cb) {
+		console.debug("embed", a1cdata, sgvdata);
+		var outer = document.querySelector("#hba1c");
+		var tpl = document.querySelector("script#hba1c_tpl");
+		var id = Math.random().toString(36).substring(2);
+		var html = tpl.innerHTML
+			.replace(/\{id\}/g, id)
+			.replace(/\{date\}/g, dates.join("--"));
+		var dict = scout.hba1c.dataDict(a1cdata, sgvdata, id, dates, options);
+		for (var key in dict) {
+			html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+		}
+		var newDiv = document.createElement("div");
+		newDiv.innerHTML = html;
+		outer.appendChild(newDiv.children[0]);
+
+		scout.spinner.finish('hba1c');
+		if (!!cb) cb();
+	},
+
+	
+	buildSgvAverage: function(sgvs) {
+		var perFiveMin = {};
+		var dayToSgvs = {};
+		for (var i=0; i<sgvs.length; i++) {
+			var ds = moment(sgvs[i].dateString);
+			var epochSec = ds.valueOf();
+			dayToSgvs[ds.format("YYYY-MM-DD")] = [];
+			var fiveMinRange = parseInt(epochSec / (60*5));
+			perFiveMin[fiveMinRange] = sgvs[i].sgv;
+		}
+
+		var dedupedSgvs = [];
+		Object.entries(perFiveMin).forEach((e) => {
+			// var ds = moment(e[0] * (60*5));
+			// dayToSgvs[ds.format("YYYY-MM-DD")].push(e[1]);
+			dedupedSgvs.push(e[1]);
+		});
+
+		// var days = {};
+		// Object.entries(dayToSgvs).forEach((e) => {
+		// 	days[e[0]] = e[1].reduce(function (acc, v) { return acc + v; }, 0) / e[1].length;
+		// });
+
+		return dedupedSgvs.reduce(function (acc, v) { return acc + v; }, 0) / dedupedSgvs.length;
+	},
+
+	processGroup: function(events, start, end, a1cdata) {
+		var sgvAverage = scout.hba1c.buildSgvAverage(events);
+		var labA1c = (a1cdata || []).filter(function(f) {
+			return moment(start).diff(moment(f.created_at)) < 0 && moment(f.created_at).diff(moment(end)) < 0;
+		}).map(function(i) {
+			return i['hba1c'];
+		});
+		return {
+			"sgv_average": sgvAverage,
+			"hba1c_average": scout.util.pctA1c(sgvAverage),
+			"lab_hba1c": labA1c
+		};
+	},
+
+	/*
+	 * Generate the dictionary of templating data
+	 */
+	dataDict: function(a1cdata, sgvdata, id, dates, options) {
+		options = options || {};
+		var dict = {};
+
+		var tbody = document.createElement('tbody');
+		var period = options.period || 14;
+		
+		var start = moment(dates[0], 'YYYY-MM-DD').startOf('day');
+		var end = moment(dates[1], 'YYYY-MM-DD').endOf('day');
+
+		var sortedData = sgvdata.sort(function(a, b) {
+			return moment(a.dateString).diff(moment(b.dateString));
+		});
+
+		var groups = [];
+		var chunkStart = start.clone();
+		var chunkEnd = chunkStart.clone().add(period, 'days');
+		var chunkEvents = [];
+	  
+		// Single-pass chunking
+		for (var i = 0; i < sortedData.length; i++) {
+		  var evDate = moment(sortedData[i].dateString);
+	  
+		  while (evDate.isSameOrAfter(chunkEnd)) {
+			groups.push(scout.hba1c.processGroup(
+				chunkEvents, 
+				chunkStart.format('YYYY-MM-DD'),
+				chunkEnd.format('YYYY-MM-DD'),
+			    a1cdata));
+			chunkEvents = [];
+			chunkStart = chunkEnd.clone();
+			chunkEnd = chunkStart.clone().add(period, 'days');
+		  }
+	  
+		  chunkEvents.push(sortedData[i]);
+		}
+	  
+		// Final chunk
+		if (chunkEvents.length > 0) {
+		  groups.push(scout.hba1c.processGroup(
+			chunkEvents, 
+			chunkStart.format('YYYY-MM-DD'),
+			chunkEnd.format('YYYY-MM-DD'),
+		    a1cdata));
+		}
+	  
+		dict['header_date'] = start.format('YYYY-MM-DD')+' - '+end.format('YYYY-MM-DD');
+		dict['groups'] = groups;
+		dict['tbody'] = tbody.outerHTML;
+		console.log('a1c dataDict', dict);
 		return dict;
 	}
 };
@@ -1957,6 +2143,12 @@ scout.sgv = {
         if (obj != null) {
             var endDate = moment(obj['date']);
             endDate.add(obj['duration'], 'minutes');
+            // Cap end point at now + 10 min so an in-progress temp basal
+            // doesn't stretch the x-axis far into the future.
+            var maxEnd = moment().add(10, 'minutes');
+            if (endDate.isAfter(maxEnd)) {
+                endDate = maxEnd;
+            }
             var pt = {
                 x: endDate,
                 y: obj['absolute'],
@@ -1988,7 +2180,7 @@ scout.sgv = {
  */
 scout.ds = {
 	sgv: [],
-	sgvMongoIds: [],
+	sgvMongoIds: new Set(),
 	tr: [],
 	devicestatus: [],
 	mbg: [],
@@ -2026,11 +2218,11 @@ scout.ds = {
 					});
 					var fixed = scout.ds._fixSgvDirectionWrapper(data[i]);
 					if (diffDeviceFl.length > 0 && (fixed['delta'] == null || fixed['delta'] == undefined)) {
-						console.debug('sgv to add does not have delta, trying diffDeviceFl', fixed, diffDeviceFl);
+						//console.debug('sgv to add does not have delta, trying diffDeviceFl', fixed, diffDeviceFl);
 						fixed['delta'] = diffDeviceFl[0]['delta'];
 					}
 					cat.push(fixed);
-					scout.ds.sgvMongoIds.push(data[i]['_id']);
+					scout.ds.sgvMongoIds.add(data[i]['_id']);
 					adds++;
 				} else if (fl.length == 1 && fl[0]['converted']) {
 					scout.ds[type] = scout.ds[type].filter(function(e) {
@@ -2039,7 +2231,7 @@ scout.ds = {
 					scout.ds[type].push(scout.ds._addReplaceConvertedSgv(data[i], fl[0]));
 					console.debug("ds.addReplaceConverted["+fl[0]['date']+"]", fl[0], data[i]);
 					adds++;
-                }
+				}
 				itemDate = moment(data[i]['date']);
             } else if (type == 'basal') {
                 var fl = cat.filter(function(e) { return e['_id'] == data[i]['_id']; });
@@ -2098,10 +2290,12 @@ scout.ds = {
 		function isValidDelta(sgv) {
 			return !(sgv['delta'] == null || sgv['delta'] == undefined);
 		}
-		if (sgvNew['device'] != sgvOld['device']) {
+		if (sgvNew['device'] != sgvOld['device'] && sgvNew['device'] != null && sgvOld['device'] != null) {
 			var newParts = sgvNew['device'].split(', ');
 			var oldParts = sgvOld['device'].split(', ');
 			sgvNew['device'] = ([...new Set([...oldParts, ...newParts])].sort()).join(', ');
+		} else if (sgvNew['device'] == null && sgvOld['device'] != null) {
+			sgvNew['device'] = sgvOld['device'];
 		}
 		if (!isValidDelta(sgvNew) && isValidDelta(sgvOld)) {
 			sgvNew['delta'] = sgvOld['delta'];
@@ -2121,7 +2315,7 @@ scout.ds = {
 	_fixSgvDirection: function(sgv) {
 		if (sgv['direction'] == 'Flat' || sgv['direction'] == 'NONE') {
 			if (sgv['delta'] === undefined) {
-				console.error('null delta', sgv);
+				// console.error('null delta', sgv);
 			} else if (
 			  Math.abs(sgv['delta']) >= 5 ||
 			  sgv['direction'] == 'NONE' // xDrip4iOS occasionally reports 'NONE' for 'Flat' with dexcom share
@@ -2284,6 +2478,10 @@ scout.ds = {
 	_sameDevice: function(sgvA, sgvB) {
 		if (sgvA['device'] == sgvB['device']) {
 			return true;
+		}
+
+		if (sgvA['device'] == null || sgvB['device'] == null) {
+			return false;
 		}
 
 		if (sgvA['device'].split(' ')[0] == sgvB['device'].split(' ')[0]) {
@@ -3091,7 +3289,9 @@ scout.trfetch = function(args, cb) {
 		if (args.date.gte) parsed += "&find[created_at][$gte]=" + scout.util.convertTrDate(args.date.gte).replace(/ /g, 'T');
 		if (args.date.lte) parsed += "&find[created_at][$lte]=" + scout.util.convertTrDate(args.date.lte).replace(/ /g, 'T');
 	}
-	if (args.eventType) parsed += "&find[eventType]=" + escape(args.eventType);
+	// `"_id[$ne]": "0"` is a stupid hack to force iterating through the entire collection
+	if (args.eventType) parsed += "&find[_id][$ne]=0&find[eventType]=" + escape(args.eventType);
+	
 	parsed += "&ts=" + (+new Date())
 	console.debug("trfetch", args, parsed);
 	scout.superagent.get(scout.config.urls.apiRoot + scout.config.urls.treatments+"?"+parsed, function(resp) {
