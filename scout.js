@@ -110,6 +110,11 @@ scout.util = {
 		return parseInt(num * Math.pow(10, places)) / Math.pow(10, places);
 	},
 
+	fmtBolus: function(val) {
+		if (val === null || val === undefined || val === 0) return val;
+		return parseFloat(val) < 1 ? parseFloat(val).toFixed(2) : parseFloat(val).toFixed(1);
+	},
+
 	percent: function(num, decimalPlaces) {
 		var places = parseInt(decimalPlaces) || 0;
 		return new String(scout.util.round(num, 2+places) * 100).substr(0, 3+places)+"%";
@@ -409,6 +414,9 @@ scout.chartConf = {
 						if (dataset['label'] == 'Bolus' && !idata['r']) {
 							return ''; // hide Bolus label and value for notes
 						}
+						if (dataset['label'] == 'Bolus' && idata['r']) {
+							return 'Bolus: ' + scout.util.fmtBolus(idata['r']) + ' U';
+						}
 						return Chart.defaults.global.tooltips.callbacks.label(tooltipItem, data);
 					},
 	        		afterLabel: function(tooltipItem, data) {
@@ -482,7 +490,7 @@ scout.chartConf = {
 						} else if (!value['r'] && value['trObj'] && value['trObj']['notes']) {
 							return 'Note';
 						}
-						return value['r'];
+						return scout.util.fmtBolus(value['r']);
 					}
 				}
 			},
